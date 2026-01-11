@@ -353,7 +353,6 @@ export default function Home() {
                   <div className="relative max-w-2xl mx-auto w-full group">
                     <motion.div 
                       whileHover={{ scale: 1.005 }}
-                      whileFocusWithin={{ scale: 1.01 }}
                       transition={{ type: "spring", stiffness: 300, damping: 20 }}
                       className="relative border border-border/40 bg-card/20 rounded-[32px] shadow-2xl transition-all overflow-hidden focus-within:ring-1 focus-within:ring-foreground/10 focus-within:border-foreground/20 hover:border-foreground/10 backdrop-blur-sm"
                     >
