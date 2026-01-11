@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
@@ -12,7 +12,10 @@ import {
   Trash2,
   ExternalLink,
   BookOpen,
+  Share2,
 } from "lucide-react";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 
 type View = "home" | "loading" | "answer";
 
@@ -49,6 +52,29 @@ export default function Home() {
     style: "Balanced",
   });
   const [tutorialStep, setTutorialStep] = useState(0);
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Focus search: Cmd/Ctrl + K
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        if (view === "home") {
+          textAreaRef.current?.focus();
+        } else {
+          setView("home");
+          setTimeout(() => textAreaRef.current?.focus(), 100);
+        }
+      }
+      // Go back: Escape
+      if (e.key === "Escape") {
+        if (view !== "home") setView("home");
+        if (showHistory) setShowHistory(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [view, showHistory]);
 
   useEffect(() => {
     const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
@@ -118,11 +144,31 @@ export default function Home() {
   const copy = async (text: string) => {
     await navigator.clipboard.writeText(text);
     setCopied(true);
+    toast.success("Copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const share = async () => {
+    const shareData = {
+      title: 'AskVerify Answer',
+      text: `Check out this answer for: "${query}"\n\n${mockAnswer}`,
+      url: window.location.href,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(`${shareData.text}\n\nShared via AskVerify: ${shareData.url}`);
+        toast.success("Share link copied to clipboard");
+      }
+    } catch (err) {
+      console.error("Share failed:", err);
+    }
   };
 
   return (
     <div className="min-h-screen w-full bg-background text-foreground transition-colors duration-500 selection:bg-primary/10 relative flex flex-col items-center justify-center font-sans overflow-hidden">
+      <Toaster position="top-center" />
       {/* Onboarding Overlay */}
       <AnimatePresence>
         {showTutorial && (
@@ -312,6 +358,7 @@ export default function Home() {
                       className="relative border border-border/40 bg-card/20 rounded-[32px] shadow-2xl transition-all overflow-hidden focus-within:ring-1 focus-within:ring-foreground/10 focus-within:border-foreground/20 hover:border-foreground/10 backdrop-blur-sm"
                     >
                       <textarea
+                        ref={textAreaRef}
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         onKeyDown={(e) => {
@@ -573,6 +620,13 @@ export default function Home() {
                       New Search
                     </button>
                     <div className="flex gap-3 sm:gap-6 order-1 sm:order-2 w-full sm:w-auto justify-center sm:justify-end">
+                      <button
+                        onClick={share}
+                        className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors group"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        Share
+                      </button>
                       <button
                         onClick={() => copy(mockAnswer)}
                         className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors group"
