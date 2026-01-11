@@ -112,5 +112,6 @@
     -webkit-background-clip: text;
     background-clip: text;
     animation: shimmer 8s linear infinite;
+    display: inline-block;
   }
 }
