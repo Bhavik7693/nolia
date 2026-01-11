@@ -16,9 +16,21 @@ import {
 
 type View = "home" | "loading" | "answer";
 
-const mockAnswer = `Artificial Intelligence (AI) refers to the simulation of human intelligence by machines, particularly computer systems. These processes include learning (the acquisition of information and rules for using the information), reasoning (using rules to reach approximate or definite conclusions), and self-correction.
+const mockAnswer = `Artificial Intelligence (AI) [1] refers to the simulation of human intelligence by machines, particularly computer systems. These processes include learning, reasoning, and self-correction [2].
 
-The current landscape is dominated by Generative AI and Large Language Models (LLMs). These systems are trained on vast datasets to recognize patterns and generate content that mimics human output. Key applications range from natural language processing and image generation to predictive analytics and autonomous systems.`;
+The current landscape is dominated by Generative AI and Large Language Models (LLMs) [3]. These systems are trained on vast datasets to recognize patterns and generate content that mimics human output [2]. Key applications range from natural language processing to autonomous systems.`;
+
+const suggestions = [
+  "How does Generative AI work?",
+  "Latest trends in LLM research",
+  "Future of AI autonomous systems",
+];
+
+const takeaways = [
+  "AI mimics human intelligence through learning and reasoning.",
+  "Generative AI and LLMs are the current dominant technologies.",
+  "Applications include NLP, image generation, and predictive analytics.",
+];
 
 export default function Home() {
   const [dark, setDark] = useState(true);
@@ -250,14 +262,62 @@ export default function Home() {
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-medium tracking-tight leading-snug">{query}</h2>
                   
                   <div className="space-y-6">
+                    {/* Key Takeaways Card */}
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.1 }}
+                      className="p-6 rounded-3xl bg-foreground/5 border border-foreground/5 space-y-4"
+                    >
+                      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-foreground/60">
+                        <Check className="w-3.5 h-3.5" />
+                        Key Takeaways
+                      </div>
+                      <ul className="space-y-3">
+                        {takeaways.map((item, i) => (
+                          <li key={i} className="flex gap-3 text-sm leading-relaxed text-foreground/80">
+                            <span className="mt-1.5 w-1 h-1 rounded-full bg-foreground/30 shrink-0" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </motion.div>
+
                     <motion.div 
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.2 }}
                     >
                       <p className="text-base sm:text-lg leading-relaxed text-foreground/90 whitespace-pre-wrap">
-                        {mockAnswer}
+                        {mockAnswer.split(/(\[\d+\])/).map((part, i) => {
+                          if (part.match(/\[\d+\]/)) {
+                            return (
+                              <sup key={i} className="text-[10px] font-bold text-primary ml-0.5 cursor-help hover:underline">
+                                {part}
+                              </sup>
+                            );
+                          }
+                          return part;
+                        })}
                       </p>
+                    </motion.div>
+
+                    {/* Follow-up Suggestions */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="flex flex-wrap gap-2 pt-2"
+                    >
+                      {suggestions.map((s, i) => (
+                        <button
+                          key={i}
+                          onClick={() => { setQuery(s); go(); }}
+                          className="text-xs sm:text-sm px-4 py-2 rounded-full border border-border/60 hover:border-primary/30 hover:bg-muted transition-all text-muted-foreground hover:text-foreground active:scale-95"
+                        >
+                          {s}
+                        </button>
+                      ))}
                     </motion.div>
 
                     {/* Sources Section */}
