@@ -62,129 +62,140 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background text-foreground transition-colors duration-300 selection:bg-primary/10 relative flex flex-col items-center justify-center font-sans overflow-hidden">
-      {/* Header */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-md border-b border-border/50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 md:py-6 flex items-center justify-between">
-          <motion.div 
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-2 cursor-pointer group"
-            onClick={() => setView("home")}
-          >
-            <div className="w-5 h-5 bg-foreground rounded-sm transition-transform group-hover:scale-110" />
-            <span className="text-lg font-semibold tracking-tight">AskVerify</span>
-          </motion.div>
-          
-          <div className="flex items-center gap-2">
-            <motion.button
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              onClick={() => setShowHistory(!showHistory)}
-              className="p-2 hover:bg-muted rounded-full transition-colors active:scale-90"
-              title="History"
-            >
-              <History className="w-4 h-4" />
-            </motion.button>
-            <motion.button
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              onClick={() => setDark(!dark)}
-              className="p-2 hover:bg-muted rounded-full transition-colors active:scale-90"
-            >
-              {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </motion.button>
-          </div>
-        </div>
-      </nav>
-
-      {/* History Sidebar */}
+    <div className="min-h-screen w-full bg-background text-foreground transition-colors duration-500 selection:bg-primary/10 relative flex flex-col items-center justify-center font-sans overflow-hidden">
       <AnimatePresence>
-        {showHistory && (
-          <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            className="fixed right-0 top-0 bottom-0 w-full sm:w-80 bg-card border-l border-border z-[60] p-6 shadow-2xl backdrop-blur-xl bg-opacity-95"
-          >
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="font-bold text-lg">Recent Queries</h3>
-              <button onClick={() => setShowHistory(false)} className="text-muted-foreground hover:text-foreground p-2 text-sm font-medium">
-                Close
-              </button>
-            </div>
-            <div className="space-y-4 overflow-y-auto max-h-[calc(100vh-160px)] pr-2 scrollbar-none">
-              {history.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-10">No recent activity</p>
-              ) : (
-                history.map((item, i) => (
-                  <div 
-                    key={i} 
-                    className="p-4 rounded-xl border border-border/50 hover:border-primary/20 transition-all cursor-pointer group bg-background/50 active:scale-[0.98]" 
-                    onClick={() => { setQuery(item.q); go(); setShowHistory(false); }}
-                  >
-                    <p className="text-sm font-semibold truncate mb-1">{item.q}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{item.a}</p>
-                  </div>
-                ))
-              )}
-            </div>
-            {history.length > 0 && (
-              <button 
-                onClick={() => setHistory([])} 
-                className="absolute bottom-6 left-6 right-6 h-10 border border-border rounded-lg text-xs font-bold flex items-center justify-center gap-2 hover:bg-destructive/10 hover:text-destructive transition-colors active:scale-95"
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="contents"
+        >
+          {/* Header */}
+          <nav className="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-xl border-b border-border/40">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 md:py-6 flex items-center justify-between">
+              <motion.div 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                className="flex items-center gap-2 cursor-pointer group"
+                onClick={() => setView("home")}
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                Clear History
-              </button>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <main className="w-full max-w-2xl px-4 sm:px-6 py-20 flex flex-col justify-center min-h-screen">
-        <AnimatePresence mode="wait">
-          {view === "home" && (
-            <motion.div
-              key="home"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.4 }}
-              className="space-y-12 md:space-y-16"
-            >
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-normal tracking-tight text-center leading-[1.1] text-foreground">
-                Search the world's knowledge.
-              </h1>
-
-              <div className="relative max-w-2xl mx-auto w-full group">
-                <div className="relative border border-border/40 bg-card/30 rounded-3xl shadow-2xl transition-all overflow-hidden focus-within:ring-1 focus-within:ring-foreground/10 focus-within:border-foreground/20 hover:border-foreground/10 backdrop-blur-sm">
-                  <textarea
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        go();
-                      }
-                    }}
-                    placeholder="Ask anything..."
-                    className="w-full min-h-[160px] md:min-h-[180px] p-6 sm:p-8 pb-20 bg-transparent resize-none focus:outline-none text-lg sm:text-xl leading-relaxed placeholder:text-muted-foreground/30 font-light"
-                  />
-                  <div className="absolute bottom-6 right-6">
-                    <button
-                      onClick={go}
-                      disabled={!query.trim()}
-                      className="h-12 md:h-14 px-8 sm:px-10 bg-foreground text-background rounded-2xl font-medium text-base disabled:opacity-20 hover:opacity-90 transition-all flex items-center gap-3 active:scale-[0.98] shadow-lg"
-                    >
-                      <Search className="w-4 h-4" />
-                      Search
-                    </button>
-                  </div>
-                </div>
+                <div className="w-5 h-5 bg-foreground rounded-[4px] transition-transform group-hover:scale-110" />
+                <span className="text-lg font-semibold tracking-tight">AskVerify</span>
+              </motion.div>
+              
+              <div className="flex items-center gap-2">
+                <motion.button
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="p-2 hover:bg-muted rounded-full transition-colors active:scale-90"
+                  title="History"
+                >
+                  <History className="w-4 h-4" />
+                </motion.button>
+                <motion.button
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                  onClick={() => setDark(!dark)}
+                  className="p-2 hover:bg-muted rounded-full transition-colors active:scale-90"
+                >
+                  {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </motion.button>
               </div>
-            </motion.div>
-          )}
+            </div>
+          </nav>
+
+          {/* History Sidebar */}
+          <AnimatePresence>
+            {showHistory && (
+              <motion.div
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="fixed right-0 top-0 bottom-0 w-full sm:w-80 bg-card/95 border-l border-border/40 z-[60] p-6 shadow-2xl backdrop-blur-2xl"
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="font-bold text-lg">Recent Queries</h3>
+                  <button onClick={() => setShowHistory(false)} className="text-muted-foreground hover:text-foreground p-2 text-sm font-medium">
+                    Close
+                  </button>
+                </div>
+                <div className="space-y-4 overflow-y-auto max-h-[calc(100vh-160px)] pr-2 scrollbar-none">
+                  {history.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-10">No recent activity</p>
+                  ) : (
+                    history.map((item, i) => (
+                      <div 
+                        key={i} 
+                        className="p-4 rounded-2xl border border-border/40 hover:border-primary/20 transition-all cursor-pointer group bg-background/50 active:scale-[0.98]" 
+                        onClick={() => { setQuery(item.q); go(); setShowHistory(false); }}
+                      >
+                        <p className="text-sm font-semibold truncate mb-1">{item.q}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{item.a}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+                {history.length > 0 && (
+                  <button 
+                    onClick={() => setHistory([])} 
+                    className="absolute bottom-6 left-6 right-6 h-10 border border-border rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-destructive/10 hover:text-destructive transition-colors active:scale-95"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Clear History
+                  </button>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <main className="w-full max-w-2xl px-4 sm:px-6 py-20 flex flex-col justify-center min-h-screen">
+            <AnimatePresence mode="wait">
+              {view === "home" && (
+                <motion.div
+                  key="home"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className="space-y-12 md:space-y-16"
+                >
+                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-normal tracking-tight text-center leading-[1.1] text-foreground">
+                    Search the world's <span className="font-light italic text-muted-foreground">knowledge.</span>
+                  </h1>
+
+                  <div className="relative max-w-2xl mx-auto w-full group">
+                    <div className="relative border border-border/40 bg-card/20 rounded-[32px] shadow-2xl transition-all overflow-hidden focus-within:ring-1 focus-within:ring-foreground/10 focus-within:border-foreground/20 hover:border-foreground/10 backdrop-blur-sm">
+                      <textarea
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            go();
+                          }
+                        }}
+                        placeholder="Ask anything..."
+                        className="w-full min-h-[160px] md:min-h-[180px] p-6 sm:p-8 pb-20 bg-transparent resize-none focus:outline-none text-lg sm:text-xl leading-relaxed placeholder:text-muted-foreground/20 font-light tracking-tight"
+                      />
+                      <div className="absolute bottom-6 right-6">
+                        <button
+                          onClick={go}
+                          disabled={!query.trim()}
+                          className="h-12 md:h-14 px-8 sm:px-10 bg-foreground text-background rounded-2xl font-medium text-base disabled:opacity-20 hover:opacity-95 transition-all flex items-center gap-3 active:scale-[0.98] shadow-lg hover:shadow-xl"
+                        >
+                          <Search className="w-4 h-4" />
+                          Search
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
 
           {view === "loading" && (
             <motion.div
@@ -400,6 +411,8 @@ export default function Home() {
           )}
         </AnimatePresence>
       </main>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
