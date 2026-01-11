@@ -42,6 +42,47 @@ export default function Home() {
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
   const [comment, setComment] = useState("");
   const [showCommentBox, setShowCommentBox] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+
+  useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem("hasSeenTutorial");
+    if (!hasSeenTutorial) {
+      setShowTutorial(true);
+    }
+  }, []);
+
+  const tutorialSteps = [
+    {
+      title: "Welcome to AskVerify",
+      description: "Get verified answers from multiple AI models and web sources in one place.",
+      target: "search-input",
+    },
+    {
+      title: "Smart Citations",
+      description: "Every answer comes with inline citations so you can verify the information instantly.",
+      target: "citations",
+    },
+    {
+      title: "Key Takeaways",
+      description: "Quickly digest complex topics with our AI-generated summary cards.",
+      target: "takeaways",
+    },
+    {
+      title: "History & More",
+      description: "Access your past searches and toggle between light and dark modes easily.",
+      target: "header-actions",
+    },
+  ];
+
+  const nextStep = () => {
+    if (tutorialStep < tutorialSteps.length - 1) {
+      setTutorialStep(tutorialStep + 1);
+    } else {
+      setShowTutorial(false);
+      localStorage.setItem("hasSeenTutorial", "true");
+    }
+  };
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -69,6 +110,46 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full bg-background text-foreground transition-colors duration-500 selection:bg-primary/10 relative flex flex-col items-center justify-center font-sans overflow-hidden">
+      {/* Tutorial Overlay */}
+      <AnimatePresence>
+        {showTutorial && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-md px-6"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="max-w-md w-full bg-card p-8 rounded-[32px] border border-border/40 shadow-2xl space-y-6"
+            >
+              <div className="space-y-2 text-center">
+                <h3 className="text-2xl font-semibold tracking-tight">{tutorialSteps[tutorialStep].title}</h3>
+                <p className="text-muted-foreground leading-relaxed">{tutorialSteps[tutorialStep].description}</p>
+              </div>
+              
+              <div className="flex items-center justify-between pt-4">
+                <div className="flex gap-1.5">
+                  {tutorialSteps.map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-1.5 h-1.5 rounded-full transition-colors ${i === tutorialStep ? "bg-primary" : "bg-muted"}`}
+                    />
+                  ))}
+                </div>
+                <button
+                  onClick={nextStep}
+                  className="px-6 py-2.5 bg-foreground text-background rounded-xl font-medium text-sm hover:opacity-90 active:scale-95 transition-all"
+                >
+                  {tutorialStep === tutorialSteps.length - 1 ? "Get Started" : "Next"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         <motion.div
           initial={{ opacity: 0 }}
