@@ -39,6 +39,9 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<{ q: string; a: string }[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
+  const [comment, setComment] = useState("");
+  const [showCommentBox, setShowCommentBox] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -48,6 +51,9 @@ export default function Home() {
   const go = () => {
     if (query.trim()) {
       setView("loading");
+      setFeedback(null);
+      setComment("");
+      setShowCommentBox(false);
       setTimeout(() => {
         setHistory(prev => [{ q: query, a: mockAnswer }, ...prev].slice(0, 5));
         setView("answer");
@@ -347,12 +353,53 @@ export default function Home() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 }}
-                      className="mt-8 sm:mt-12 space-y-4"
+                      className="mt-8 sm:mt-12 space-y-6"
                     >
-                      <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                        <BookOpen className="w-4 h-4" />
-                        Sources
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                          <BookOpen className="w-4 h-4" />
+                          Sources
+                        </div>
+                        
+                        {/* Feedback Mechanism */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground mr-2">Was this helpful?</span>
+                          <button
+                            onClick={() => { setFeedback("up"); setShowCommentBox(true); }}
+                            className={`p-2 rounded-lg border transition-all ${feedback === "up" ? "bg-primary/10 border-primary/50 text-primary" : "border-border/40 hover:bg-muted text-muted-foreground"}`}
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => { setFeedback("down"); setShowCommentBox(true); }}
+                            className={`p-2 rounded-lg border transition-all ${feedback === "down" ? "bg-destructive/10 border-destructive/50 text-destructive" : "border-border/40 hover:bg-muted text-muted-foreground"}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
+
+                      {showCommentBox && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          className="space-y-3"
+                        >
+                          <textarea
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            placeholder="Tell us more (optional)..."
+                            className="w-full p-3 rounded-xl border border-border/40 bg-card/20 focus:outline-none focus:ring-1 focus:ring-primary/20 text-sm resize-none h-20"
+                          />
+                          <button
+                            onClick={() => setShowCommentBox(false)}
+                            className="text-xs font-medium px-4 py-2 bg-foreground text-background rounded-lg hover:opacity-90 transition-opacity"
+                          >
+                            Submit Feedback
+                          </button>
+                        </motion.div>
+                      )}
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[
                           { title: "AI Fundamentals", domain: "wikipedia.org", url: "#" },
