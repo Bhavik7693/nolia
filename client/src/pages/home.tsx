@@ -13,6 +13,8 @@ import {
   ExternalLink,
   BookOpen,
   Share2,
+  Mic,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
@@ -52,6 +54,7 @@ export default function Home() {
     style: "Balanced",
   });
   const [tutorialStep, setTutorialStep] = useState(0);
+  const [isListening, setIsListening] = useState(false);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -148,6 +151,16 @@ export default function Home() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const startListening = () => {
+    setIsListening(true);
+    toast.info("Listening... (Mock)");
+    setTimeout(() => {
+      setIsListening(false);
+      setQuery("What is the future of artificial intelligence?");
+      toast.success("Voice captured");
+    }, 3000);
+  };
+
   const share = async () => {
     const shareData = {
       title: 'AskVerify Answer',
@@ -169,6 +182,49 @@ export default function Home() {
   return (
     <div className="min-h-screen w-full bg-background text-foreground transition-colors duration-500 selection:bg-primary/10 relative flex flex-col items-center justify-center font-sans overflow-hidden">
       <Toaster position="top-center" />
+      
+      {/* Voice Search Overlay */}
+      <AnimatePresence>
+        {isListening && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] flex items-center justify-center bg-background/95 backdrop-blur-2xl"
+          >
+            <div className="flex flex-col items-center gap-8">
+              <div className="relative">
+                <motion.div
+                  animate={{
+                    scale: [1, 1.5, 1],
+                    opacity: [0.3, 0.6, 0.3],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="absolute inset-0 bg-primary rounded-full blur-3xl"
+                />
+                <div className="relative w-32 h-32 bg-foreground rounded-full flex items-center justify-center shadow-2xl">
+                  <Mic className="w-12 h-12 text-background" />
+                </div>
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-2xl font-semibold">Listening...</h3>
+                <p className="text-muted-foreground">Go ahead, I'm all ears</p>
+              </div>
+              <button
+                onClick={() => setIsListening(false)}
+                className="mt-8 p-4 rounded-full border border-border/40 hover:bg-muted transition-all active:scale-95"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Onboarding Overlay */}
       <AnimatePresence>
         {showTutorial && (
@@ -370,6 +426,18 @@ export default function Home() {
                         placeholder="Ask anything..."
                         className="w-full min-h-[160px] md:min-h-[180px] p-6 sm:p-8 pb-20 bg-transparent resize-none focus:outline-none text-lg sm:text-xl leading-relaxed placeholder:text-muted-foreground/20 font-light tracking-tight"
                       />
+                      <div className="absolute bottom-6 left-6 flex items-center gap-2">
+                        <button
+                          onClick={startListening}
+                          className={`p-3 rounded-2xl border transition-all active:scale-95 ${
+                            isListening 
+                              ? "bg-primary border-primary text-primary-foreground animate-pulse" 
+                              : "border-border/40 hover:bg-muted text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          <Mic className="w-5 h-5" />
+                        </button>
+                      </div>
                       <div className="absolute bottom-6 right-6">
                         <button
                           onClick={go}
