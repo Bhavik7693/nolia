@@ -50,10 +50,10 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background text-foreground transition-colors duration-300 selection:bg-primary/10 relative flex flex-col items-center justify-center font-sans overflow-x-hidden">
+    <div className="min-h-screen w-full bg-background text-foreground transition-colors duration-300 selection:bg-primary/10 relative flex flex-col items-center justify-center font-sans overflow-hidden">
       {/* Header */}
-      <nav className="fixed top-0 left-0 right-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 py-6 md:py-8 flex items-center justify-between">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-md border-b border-border/50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 md:py-6 flex items-center justify-between">
           <motion.div 
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
@@ -97,11 +97,11 @@ export default function Home() {
           >
             <div className="flex items-center justify-between mb-8">
               <h3 className="font-bold text-lg">Recent Queries</h3>
-              <button onClick={() => setShowHistory(false)} className="text-muted-foreground hover:text-foreground p-2">
+              <button onClick={() => setShowHistory(false)} className="text-muted-foreground hover:text-foreground p-2 text-sm font-medium">
                 Close
               </button>
             </div>
-            <div className="space-y-4 overflow-y-auto max-h-[calc(100vh-160px)] pr-2">
+            <div className="space-y-4 overflow-y-auto max-h-[calc(100vh-160px)] pr-2 scrollbar-none">
               {history.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-10">No recent activity</p>
               ) : (
@@ -130,7 +130,7 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      <main className="w-full max-w-2xl px-6 py-20 flex flex-col justify-center min-h-screen">
+      <main className="w-full max-w-2xl px-4 sm:px-6 py-20 flex flex-col justify-center min-h-screen">
         <AnimatePresence mode="wait">
           {view === "home" && (
             <motion.div
@@ -157,13 +157,13 @@ export default function Home() {
                       }
                     }}
                     placeholder="Ask anything..."
-                    className="w-full min-h-[140px] md:min-h-[160px] p-6 pb-16 bg-transparent resize-none focus:outline-none text-lg leading-relaxed placeholder:text-muted-foreground/50"
+                    className="w-full min-h-[140px] md:min-h-[160px] p-4 sm:p-6 pb-16 bg-transparent resize-none focus:outline-none text-base sm:text-lg leading-relaxed placeholder:text-muted-foreground/50"
                   />
                   <div className="absolute bottom-4 right-4">
                     <button
                       onClick={go}
                       disabled={!query.trim()}
-                      className="h-10 md:h-11 px-6 bg-foreground text-background rounded-xl font-medium text-sm disabled:opacity-30 hover:opacity-90 transition-all flex items-center gap-2 active:scale-95 shadow-sm"
+                      className="h-10 md:h-11 px-4 sm:px-6 bg-foreground text-background rounded-xl font-medium text-sm disabled:opacity-30 hover:opacity-90 transition-all flex items-center gap-2 active:scale-95 shadow-sm"
                     >
                       <Search className="w-3.5 h-3.5" />
                       Search
@@ -193,14 +193,14 @@ export default function Home() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="relative w-full max-w-3xl mx-auto flex flex-col h-[calc(100vh-160px)]"
+              className="relative w-full max-w-3xl mx-auto flex flex-col h-[calc(100vh-140px)] sm:h-[calc(100vh-160px)]"
             >
               {/* Top Fade Gradient */}
-              <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-background to-transparent z-20 pointer-events-none" />
+              <div className="absolute top-0 left-0 right-0 h-8 sm:h-12 bg-gradient-to-b from-background to-transparent z-20 pointer-events-none" />
               
-              <div className="flex-1 overflow-y-auto pr-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                <div className="space-y-8 pb-12 pt-8">
-                  <h2 className="text-2xl md:text-3xl font-medium tracking-tight leading-snug">{query}</h2>
+              <div className="flex-1 overflow-y-auto pr-2 scrollbar-none">
+                <div className="space-y-6 sm:space-y-8 pb-12 pt-8 sm:pt-10">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-medium tracking-tight leading-snug">{query}</h2>
                   
                   <div className="space-y-6">
                     <motion.div 
@@ -208,7 +208,7 @@ export default function Home() {
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.2 }}
                     >
-                      <p className="text-lg leading-relaxed text-foreground/90 whitespace-pre-wrap">
+                      <p className="text-base sm:text-lg leading-relaxed text-foreground/90 whitespace-pre-wrap">
                         {mockAnswer}
                       </p>
                     </motion.div>
@@ -218,9 +218,9 @@ export default function Home() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 }}
-                      className="mt-12 space-y-4"
+                      className="mt-8 sm:mt-12 space-y-4"
                     >
-                      <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                         <BookOpen className="w-4 h-4" />
                         Sources
                       </div>
@@ -233,11 +233,11 @@ export default function Home() {
                           <a
                             key={idx}
                             href={source.url}
-                            className="flex items-center justify-between p-3.5 rounded-xl border border-border/50 bg-card/50 hover:bg-muted hover:border-primary/20 transition-all group"
+                            className="flex items-center justify-between p-3 sm:p-3.5 rounded-xl border border-border/50 bg-card/50 hover:bg-muted hover:border-primary/20 transition-all group"
                           >
                             <div className="flex flex-col min-w-0">
                               <span className="text-sm font-medium group-hover:text-primary transition-colors truncate">{source.title}</span>
-                              <span className="text-xs text-muted-foreground truncate">{source.domain}</span>
+                              <span className="text-[10px] sm:text-xs text-muted-foreground truncate">{source.domain}</span>
                             </div>
                             <ExternalLink className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-all flex-shrink-0" />
                           </a>
@@ -249,20 +249,20 @@ export default function Home() {
               </div>
 
               {/* Bottom Fade Gradient */}
-              <div className="absolute bottom-16 left-0 right-0 h-12 bg-gradient-to-t from-background to-transparent z-20 pointer-events-none" />
+              <div className="absolute bottom-20 sm:bottom-16 left-0 right-0 h-8 sm:h-12 bg-gradient-to-t from-background to-transparent z-20 pointer-events-none" />
 
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-8 border-t border-border mt-auto bg-background/80 backdrop-blur-sm z-30">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6 pt-6 sm:pt-8 border-t border-border mt-auto bg-background/80 backdrop-blur-sm z-30">
                 <button
                   onClick={() => setView("home")}
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors order-2 sm:order-1 flex items-center gap-2"
+                  className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors order-2 sm:order-1 flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted"
                 >
-                  <ArrowRight className="w-4 h-4 rotate-180" />
+                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 rotate-180" />
                   New Search
                 </button>
-                <div className="flex gap-4 sm:gap-6 order-1 sm:order-2 w-full sm:w-auto justify-center sm:justify-end">
+                <div className="flex gap-3 sm:gap-6 order-1 sm:order-2 w-full sm:w-auto justify-center sm:justify-end">
                   <button
                     onClick={() => copy(mockAnswer)}
-                    className="text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors group"
+                    className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors group"
                   >
                     <div className="transition-transform group-hover:-translate-y-0.5 group-active:translate-y-0">
                       {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -271,7 +271,7 @@ export default function Home() {
                   </button>
                   <button
                     onClick={() => setView("loading")}
-                    className="text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors group"
+                    className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors group"
                   >
                     <RefreshCw className="w-3.5 h-3.5 transition-transform group-hover:rotate-180 duration-500" />
                     Retry
