@@ -111,7 +111,7 @@ export default function Home() {
       setTimeout(() => {
         setHistory(prev => [{ q: query, a: mockAnswer }, ...prev].slice(0, 5));
         setView("answer");
-      }, 1200);
+      }, 2000); 
     }
   };
 
@@ -294,10 +294,10 @@ export default function Home() {
               {view === "home" && (
                 <motion.div
                   key="home"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -20, scale: 0.98, transition: { duration: 0.3 } }}
+                  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                   className="space-y-12 md:space-y-16"
                 >
                   <h1 className="text-4xl md:text-5xl lg:text-6xl font-normal tracking-tight text-center leading-[1.1] text-foreground">
@@ -305,7 +305,12 @@ export default function Home() {
                   </h1>
 
                   <div className="relative max-w-2xl mx-auto w-full group">
-                    <div className="relative border border-border/40 bg-card/20 rounded-[32px] shadow-2xl transition-all overflow-hidden focus-within:ring-1 focus-within:ring-foreground/10 focus-within:border-foreground/20 hover:border-foreground/10 backdrop-blur-sm">
+                    <motion.div 
+                      whileHover={{ scale: 1.005 }}
+                      whileFocusWithin={{ scale: 1.01 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      className="relative border border-border/40 bg-card/20 rounded-[32px] shadow-2xl transition-all overflow-hidden focus-within:ring-1 focus-within:ring-foreground/10 focus-within:border-foreground/20 hover:border-foreground/10 backdrop-blur-sm"
+                    >
                       <textarea
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
@@ -328,7 +333,7 @@ export default function Home() {
                           Search
                         </button>
                       </div>
-                    </div>
+                    </motion.div>
                   </div>
                 </motion.div>
               )}
@@ -336,9 +341,10 @@ export default function Home() {
               {view === "loading" && (
                 <motion.div
                   key="loading"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.1 }}
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                   className="flex flex-col items-center justify-center space-y-10"
                 >
                   <div className="relative flex items-center justify-center">
@@ -402,9 +408,10 @@ export default function Home() {
               {view === "answer" && (
                 <motion.div
                   key="answer"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4 }}
+                  initial={{ opacity: 0, y: 40, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 20, scale: 0.98 }}
+                  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                   className="relative w-full max-w-3xl mx-auto flex flex-col h-[calc(100vh-140px)] sm:h-[calc(100vh-160px)]"
                 >
                   {/* Top Fade Gradient */}
@@ -480,9 +487,9 @@ export default function Home() {
 
                         {/* Sources Section */}
                         <motion.div
-                          initial={{ opacity: 0, y: 10 }}
+                          initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.4 }}
+                          transition={{ delay: 0.6, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                           className="mt-8 sm:mt-12 space-y-6"
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
