@@ -96,14 +96,14 @@ export default function Home() {
     {
       title: "What are your main interests?",
       description: "Pick topics you'll likely ask about most.",
-      options: ["Technology", "Science", "Business", "History", "Arts"],
+      options: ["Technology", "Science", "Business", "History", "Arts", "Design"],
       key: "interests",
       multi: true,
     },
     {
       title: "Preferred answer style?",
       description: "Choose how you want the information presented.",
-      options: ["Concise", "Balanced", "Detailed"],
+      options: ["Concise", "Balanced", "Detailed", "Creative"],
       key: "style",
     },
   ];

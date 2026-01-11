@@ -24,7 +24,10 @@ The frontend is a single-page application with a home page containing:
 - Top navigation bar with logo, theme toggle, and navigation options
 - Hero section with headline and question input
 - Quick options for web sources, answer style, and output format
-- Answer display with copy and regenerate functionality
+- Answer display with copy, share, and regenerate functionality
+- Voice search interaction with immersive listening mode
+- Personalized onboarding for user preferences
+- Keyboard shortcuts for power users (Cmd/Ctrl + K, Esc)
 
 ### Backend Architecture
 - **Framework**: Express.js with TypeScript
