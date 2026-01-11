@@ -138,15 +138,15 @@ export default function Home() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-8 md:space-y-12"
+              transition={{ duration: 0.4 }}
+              className="space-y-12 md:space-y-16"
             >
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-medium tracking-tight text-center leading-tight">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-normal tracking-tight text-center leading-[1.1] text-foreground">
                 Search the world's knowledge.
               </h1>
 
-              <div className="relative group">
-                <div className="relative border border-border bg-card rounded-2xl shadow-sm transition-all overflow-hidden focus-within:ring-1 focus-within:ring-ring focus-within:border-primary/20 hover:border-primary/10">
+              <div className="relative max-w-2xl mx-auto w-full group">
+                <div className="relative border border-border/40 bg-card/30 rounded-3xl shadow-2xl transition-all overflow-hidden focus-within:ring-1 focus-within:ring-foreground/10 focus-within:border-foreground/20 hover:border-foreground/10 backdrop-blur-sm">
                   <textarea
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -157,15 +157,15 @@ export default function Home() {
                       }
                     }}
                     placeholder="Ask anything..."
-                    className="w-full min-h-[140px] md:min-h-[160px] p-4 sm:p-6 pb-16 bg-transparent resize-none focus:outline-none text-base sm:text-lg leading-relaxed placeholder:text-muted-foreground/50"
+                    className="w-full min-h-[160px] md:min-h-[180px] p-6 sm:p-8 pb-20 bg-transparent resize-none focus:outline-none text-lg sm:text-xl leading-relaxed placeholder:text-muted-foreground/30 font-light"
                   />
-                  <div className="absolute bottom-4 right-4">
+                  <div className="absolute bottom-6 right-6">
                     <button
                       onClick={go}
                       disabled={!query.trim()}
-                      className="h-10 md:h-11 px-4 sm:px-6 bg-foreground text-background rounded-xl font-medium text-sm disabled:opacity-30 hover:opacity-90 transition-all flex items-center gap-2 active:scale-95 shadow-sm"
+                      className="h-12 md:h-14 px-8 sm:px-10 bg-foreground text-background rounded-2xl font-medium text-base disabled:opacity-20 hover:opacity-90 transition-all flex items-center gap-3 active:scale-[0.98] shadow-lg"
                     >
-                      <Search className="w-3.5 h-3.5" />
+                      <Search className="w-4 h-4" />
                       Search
                     </button>
                   </div>
