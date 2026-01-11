@@ -180,10 +180,57 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center space-y-6"
+              className="flex flex-col items-center justify-center space-y-10"
             >
-              <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
-              <p className="text-sm font-medium text-muted-foreground tracking-wide animate-pulse">Searching...</p>
+              <div className="relative flex items-center justify-center">
+                <motion.div
+                  animate={{
+                    scale: [1, 1.2, 1],
+                    rotate: [0, 180, 360],
+                    borderRadius: ["20%", "50%", "20%"],
+                  }}
+                  transition={{
+                    duration: 2,
+                    ease: "easeInOut",
+                    times: [0, 0.5, 1],
+                    repeat: Infinity,
+                  }}
+                  className="w-12 h-12 border-2 border-foreground/20 border-t-foreground"
+                />
+                <motion.div
+                  animate={{
+                    scale: [1, 0.8, 1],
+                    opacity: [0.5, 1, 0.5],
+                  }}
+                  transition={{
+                    duration: 2,
+                    ease: "easeInOut",
+                    repeat: Infinity,
+                  }}
+                  className="absolute w-4 h-4 bg-foreground rounded-full shadow-[0_0_15px_rgba(255,255,255,0.5)]"
+                />
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-sm font-medium text-muted-foreground tracking-widest uppercase animate-pulse">
+                  Searching knowledge
+                </p>
+                <div className="flex gap-1">
+                  {[0, 1, 2].map((i) => (
+                    <motion.div
+                      key={i}
+                      animate={{
+                        opacity: [0, 1, 0],
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        delay: i * 0.2,
+                      }}
+                      className="w-1 h-1 bg-muted-foreground rounded-full"
+                    />
+                  ))}
+                </div>
+              </div>
             </motion.div>
           )}
 
