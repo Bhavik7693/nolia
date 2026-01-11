@@ -1,0 +1,253 @@
+Neeche simple but “premium + perfect” web UI/UX structure de raha hoon — jisme sirf 1 page MVP hoga, par feel “complete product” jaisa aayega. (Backend baad me.)
+
+1) One-page Layout (Above the fold)
+A) Top Bar (Sticky)
+
+Left: Logo + Product name
+Center (optional): “Ask anything. Get verified answers.”
+Right:
+
+“Examples” (dropdown)
+
+“How it works” (modal)
+
+Theme toggle (Light/Dark)
+
+Top bar clean rakho. No clutter.
+
+2) Main Hero Section (Center focus)
+A) Headline
+
+Big: “Ask. Submit. Get the best answer.”
+Small subline: “Uses multiple models + web sources when needed.”
+
+B) Input Area (Main component)
+
+A large rounded input box (textarea, 3–6 lines) with:
+
+Placeholder: “Type any question… (news, coding, business, life, anything)”
+
+Character counter (optional, small)
+
+Attachment icons disabled for v1 (keep minimal)
+
+C) Primary CTA Button
+
+Right bottom of input or below:
+
+Button text: “Generate Answer”
+
+Secondary small text: “Enter ↵ to send”
+
+D) Quick Options Row (tiny toggles)
+
+Under input, 3 compact chips:
+
+Web Sources: Auto / Off
+
+Answer Style: Short / Detailed (default Short)
+
+Output: Plain / With Sources (default With Sources ON when web used)
+
+Ye chips user ko control feel dete hain without complexity.
+
+3) Result Section (Appears after submit)
+A) Result Card (Main)
+
+A big card with:
+
+Answer title: “Answer”
+
+Answer text (readable line height)
+
+B) Action Buttons (Top-right of answer card)
+
+Copy
+
+Regenerate
+
+Share link (optional v1)
+
+Download (PDF) (optional v1, can keep off)
+
+C) “Confidence + Method” strip (small)
+
+A subtle row under the answer:
+
+Confidence: High / Medium / Low
+
+Method: “Model-only” OR “Web + Sources”
+
+Ye trust banata hai.
+
+4) Sources Section (Only if web used)
+
+A separate card: “Sources”
+Each source as a compact item:
+
+Site favicon + title
+
+1–2 line snippet
+
+Time/Date if available
+
+Clickable link
+
+Also add:
+
+“Show more sources” expand/collapse
+
+“Open all in new tabs” (optional)
+
+5) “Reasoning / Steps” (Keep private, but show user-friendly)
+
+Instead of showing chain-of-thought, show:
+
+“How it got this”
+
+3–5 bullet steps like:
+
+Identified what you’re asking
+
+Pulled sources (if needed)
+
+Compared information
+
+Generated final answer
+
+This looks premium + transparent, without exposing internals.
+
+6) Empty State (When user hasn’t asked yet)
+
+Show 6 clickable example cards (chips):
+
+“Summarize this topic…”
+
+“Compare X vs Y…”
+
+“Write a professional email…”
+
+“Explain this like I’m 12…”
+
+“Give me steps to…”
+
+“Latest news about …” (this triggers web)
+
+7) Loading State (Very important UX)
+
+When user clicks Generate:
+
+Show animated skeleton in answer card
+
+Show live status line:
+
+“Understanding question…”
+
+“Searching sources…” (if on)
+
+“Writing answer…”
+
+And a cancel button:
+
+“Stop”
+
+8) Error States (No mistakes)
+
+No internet / search fail:
+“Couldn’t fetch sources. Showing best model-only answer.”
+
+Model error:
+“Something went wrong. Try regenerate.”
+
+Unsafe request (if any):
+Show polite refusal card.
+
+Color System (Simple, premium, universal)
+
+Pick a neutral + tech theme (works globally):
+
+Light Mode
+
+Background: #0B0F17 (actually this is dark; so use below)
+Let’s define properly:
+
+Light
+
+Background: #F7F8FB
+
+Surface cards: #FFFFFF
+
+Primary (CTA): #2563EB (blue)
+
+Text: #0F172A
+
+Muted text: #64748B
+
+Borders: #E2E8F0
+
+Success: #16A34A
+
+Warning: #F59E0B
+
+Error: #EF4444
+
+Dark Mode
+
+Background: #0B1220
+
+Surface cards: #111B2E
+
+Primary (CTA): #3B82F6
+
+Text: #E5E7EB
+
+Muted: #94A3B8
+
+Borders: #22304A
+
+Blue primary safe hai, “trust” feel deta hai. Global.
+
+Typography & Spacing (clean)
+
+Font: Inter / system UI
+
+Headline: 44–56px
+
+Body: 16–18px
+
+Line height: 1.6
+
+Border radius: 16–20px
+
+Max width: 920px center
+
+Mobile Layout (must)
+
+Top bar collapses to logo + theme + menu
+
+Input full width
+
+Generate button sticky bottom
+
+Sources collapsible by default
+
+Final v1 Feature List (UI-only)
+
+✅ Ask input + Generate
+✅ Short/Detailed toggle
+✅ Web sources Auto/Off
+✅ Answer card + Copy/Regenerate
+✅ Sources card
+✅ Loading statuses
+✅ Examples list
+✅ Light/Dark
+
+No login, no history, no profile.
+
+If you want, I’ll also give you:
+
+Exact Figma frame structure (Desktop + Mobile sizes)
+
+Component list (buttons, chips, cards, skeleton)
+
+Microcopy (perfect English labels everywhere)
