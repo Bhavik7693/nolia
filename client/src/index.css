@@ -108,9 +108,10 @@
       hsl(var(--foreground)) 100%
     );
     background-size: 200% auto;
-    color: transparent;
+    color: hsl(var(--foreground));
     -webkit-background-clip: text;
     background-clip: text;
     animation: shimmer 8s linear infinite;
+    -webkit-text-fill-color: transparent;
   }
 }
