@@ -347,8 +347,8 @@ export default function Home() {
                   className="space-y-12 md:space-y-16"
                 >
                   <h1 className="text-4xl md:text-5xl lg:text-6xl font-normal tracking-tight text-center leading-tight">
-                    <span className="animate-shimmer">Search the world's </span>
-                    <span className="animate-shimmer font-light italic opacity-80">knowledge.</span>
+                    <span className="animate-shimmer selection:text-foreground">Search the world's </span>
+                    <span className="animate-shimmer font-light italic opacity-90 selection:text-foreground">knowledge.</span>
                   </h1>
 
                   <div className="relative max-w-2xl mx-auto w-full group">

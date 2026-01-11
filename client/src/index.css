@@ -102,16 +102,16 @@
     background: linear-gradient(
       90deg,
       hsl(var(--foreground)) 0%,
-      hsl(var(--foreground) / 0.4) 25%,
+      hsl(var(--foreground) / 0.3) 25%,
       hsl(var(--foreground)) 50%,
-      hsl(var(--foreground) / 0.4) 75%,
+      hsl(var(--foreground) / 0.3) 75%,
       hsl(var(--foreground)) 100%
     );
     background-size: 200% auto;
     color: hsl(var(--foreground));
     -webkit-background-clip: text;
     background-clip: text;
-    animation: shimmer 8s linear infinite;
+    animation: shimmer 10s linear infinite;
     -webkit-text-fill-color: transparent;
     display: inline-block;
     vertical-align: bottom;
