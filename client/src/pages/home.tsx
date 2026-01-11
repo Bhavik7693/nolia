@@ -193,57 +193,65 @@ export default function Home() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="space-y-8 md:space-y-12 w-full"
+              className="relative w-full max-w-3xl mx-auto flex flex-col h-[calc(100vh-160px)]"
             >
-              <div className="space-y-6">
-                <h2 className="text-2xl md:text-3xl font-medium tracking-tight leading-snug">{query}</h2>
-                
-                <div className="border-t border-border pt-8">
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    <p className="text-lg leading-relaxed text-foreground/90 whitespace-pre-wrap">
-                      {mockAnswer}
-                    </p>
-                  </motion.div>
+              {/* Top Fade Gradient */}
+              <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-background to-transparent z-20 pointer-events-none" />
+              
+              <div className="flex-1 overflow-y-auto pr-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                <div className="space-y-8 pb-12 pt-8">
+                  <h2 className="text-2xl md:text-3xl font-medium tracking-tight leading-snug">{query}</h2>
+                  
+                  <div className="space-y-6">
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      <p className="text-lg leading-relaxed text-foreground/90 whitespace-pre-wrap">
+                        {mockAnswer}
+                      </p>
+                    </motion.div>
 
-                  {/* Sources Section */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="mt-12 space-y-4"
-                  >
-                    <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                      <BookOpen className="w-4 h-4" />
-                      Sources
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {[
-                        { title: "AI Fundamentals", domain: "wikipedia.org", url: "#" },
-                        { title: "Generative AI Trends", domain: "technologyreview.com", url: "#" },
-                        { title: "LLM Research Paper", domain: "arxiv.org", url: "#" }
-                      ].map((source, idx) => (
-                        <a
-                          key={idx}
-                          href={source.url}
-                          className="flex items-center justify-between p-3.5 rounded-xl border border-border/50 bg-card/50 hover:bg-muted hover:border-primary/20 transition-all group"
-                        >
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-sm font-medium group-hover:text-primary transition-colors truncate">{source.title}</span>
-                            <span className="text-xs text-muted-foreground truncate">{source.domain}</span>
-                          </div>
-                          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-all flex-shrink-0" />
-                        </a>
-                      ))}
-                    </div>
-                  </motion.div>
+                    {/* Sources Section */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="mt-12 space-y-4"
+                    >
+                      <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                        <BookOpen className="w-4 h-4" />
+                        Sources
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {[
+                          { title: "AI Fundamentals", domain: "wikipedia.org", url: "#" },
+                          { title: "Generative AI Trends", domain: "technologyreview.com", url: "#" },
+                          { title: "LLM Research Paper", domain: "arxiv.org", url: "#" }
+                        ].map((source, idx) => (
+                          <a
+                            key={idx}
+                            href={source.url}
+                            className="flex items-center justify-between p-3.5 rounded-xl border border-border/50 bg-card/50 hover:bg-muted hover:border-primary/20 transition-all group"
+                          >
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-sm font-medium group-hover:text-primary transition-colors truncate">{source.title}</span>
+                              <span className="text-xs text-muted-foreground truncate">{source.domain}</span>
+                            </div>
+                            <ExternalLink className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-all flex-shrink-0" />
+                          </a>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-8 border-t border-border">
+              {/* Bottom Fade Gradient */}
+              <div className="absolute bottom-16 left-0 right-0 h-12 bg-gradient-to-t from-background to-transparent z-20 pointer-events-none" />
+
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-8 border-t border-border mt-auto bg-background/80 backdrop-blur-sm z-30">
                 <button
                   onClick={() => setView("home")}
                   className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors order-2 sm:order-1 flex items-center gap-2"
