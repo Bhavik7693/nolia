@@ -207,38 +207,44 @@ export default function Home() {
                     times: [0, 0.5, 1],
                     repeat: Infinity,
                   }}
-                  className="w-12 h-12 border-2 border-foreground/20 border-t-foreground"
+                  className="w-12 h-12 border-2 border-foreground/20 border-t-foreground shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(255,255,255,0.05)]"
                 />
                 <motion.div
                   animate={{
                     scale: [1, 0.8, 1],
-                    opacity: [0.5, 1, 0.5],
+                    opacity: [0.3, 0.8, 0.3],
                   }}
                   transition={{
                     duration: 2,
                     ease: "easeInOut",
                     repeat: Infinity,
                   }}
-                  className="absolute w-4 h-4 bg-foreground rounded-full shadow-[0_0_15px_rgba(255,255,255,0.5)]"
+                  className="absolute w-4 h-4 bg-foreground rounded-full"
                 />
               </div>
-              <div className="flex flex-col items-center gap-2">
-                <p className="text-sm font-medium text-muted-foreground tracking-widest uppercase animate-pulse">
-                  Searching knowledge
-                </p>
-                <div className="flex gap-1">
+              <div className="flex flex-col items-center gap-4">
+                <div className="flex flex-col items-center gap-1">
+                  <p className="text-sm font-medium text-muted-foreground tracking-[0.2em] uppercase">
+                    Analyzing Sources
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/40 font-mono">
+                    VERIFYING CLAIMS...
+                  </p>
+                </div>
+                <div className="flex gap-1.5">
                   {[0, 1, 2].map((i) => (
                     <motion.div
                       key={i}
                       animate={{
-                        opacity: [0, 1, 0],
+                        scale: [1, 1.5, 1],
+                        opacity: [0.3, 1, 0.3],
                       }}
                       transition={{
-                        duration: 1.5,
+                        duration: 1,
                         repeat: Infinity,
-                        delay: i * 0.2,
+                        delay: i * 0.15,
                       }}
-                      className="w-1 h-1 bg-muted-foreground rounded-full"
+                      className="w-1 h-1 bg-foreground/40 rounded-full"
                     />
                   ))}
                 </div>
@@ -267,16 +273,21 @@ export default function Home() {
                       initial={{ opacity: 0, scale: 0.98 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.1 }}
-                      className="p-6 rounded-3xl bg-foreground/5 border border-foreground/5 space-y-4"
+                      className="p-6 rounded-3xl bg-foreground/5 border border-foreground/5 space-y-4 hover:bg-foreground/10 transition-colors cursor-default group/card"
                     >
-                      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-foreground/60">
-                        <Check className="w-3.5 h-3.5" />
-                        Key Takeaways
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-foreground/60">
+                          <Check className="w-3.5 h-3.5" />
+                          Key Takeaways
+                        </div>
+                        <div className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover/card:opacity-100 transition-opacity">
+                          Verified
+                        </div>
                       </div>
                       <ul className="space-y-3">
                         {takeaways.map((item, i) => (
-                          <li key={i} className="flex gap-3 text-sm leading-relaxed text-foreground/80">
-                            <span className="mt-1.5 w-1 h-1 rounded-full bg-foreground/30 shrink-0" />
+                          <li key={i} className="flex gap-3 text-sm leading-relaxed text-foreground/80 group/item">
+                            <span className="mt-1.5 w-1 h-1 rounded-full bg-foreground/30 shrink-0 group-hover/item:bg-primary transition-colors" />
                             {item}
                           </li>
                         ))}
