@@ -43,44 +43,56 @@ export default function Home() {
   const [comment, setComment] = useState("");
   const [showCommentBox, setShowCommentBox] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [tutorialStep, setTutorialStep] = useState(0);
+  const [userPreferences, setUserPreferences] = useState({
+    experience: "",
+    interests: [] as string[],
+    style: "Balanced",
+  });
 
   useEffect(() => {
-    const hasSeenTutorial = localStorage.getItem("hasSeenTutorial");
-    if (!hasSeenTutorial) {
+    const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
+    if (!hasSeenOnboarding) {
       setShowTutorial(true);
     }
   }, []);
 
-  const tutorialSteps = [
+  const onboardingSteps = [
     {
-      title: "Welcome to AskVerify",
-      description: "Get verified answers from multiple AI models and web sources in one place.",
-      target: "search-input",
+      title: "How experienced are you with AI?",
+      description: "We'll tailor the answer complexity to your level.",
+      options: ["Beginner", "Intermediate", "Expert"],
+      key: "experience",
     },
     {
-      title: "Smart Citations",
-      description: "Every answer comes with inline citations so you can verify the information instantly.",
-      target: "citations",
+      title: "What are your main interests?",
+      description: "Pick topics you'll likely ask about most.",
+      options: ["Technology", "Science", "Business", "History", "Arts"],
+      key: "interests",
+      multi: true,
     },
     {
-      title: "Key Takeaways",
-      description: "Quickly digest complex topics with our AI-generated summary cards.",
-      target: "takeaways",
-    },
-    {
-      title: "History & More",
-      description: "Access your past searches and toggle between light and dark modes easily.",
-      target: "header-actions",
+      title: "Preferred answer style?",
+      description: "Choose how you want the information presented.",
+      options: ["Concise", "Balanced", "Detailed"],
+      key: "style",
     },
   ];
 
-  const nextStep = () => {
-    if (tutorialStep < tutorialSteps.length - 1) {
-      setTutorialStep(tutorialStep + 1);
+  const handleOnboardingNext = (value: string) => {
+    if (onboardingSteps[tutorialStep].multi) {
+      const current = userPreferences.interests;
+      const updated = current.includes(value) 
+        ? current.filter(i => i !== value)
+        : [...current, value];
+      setUserPreferences({ ...userPreferences, interests: updated });
     } else {
-      setShowTutorial(false);
-      localStorage.setItem("hasSeenTutorial", "true");
+      setUserPreferences({ ...userPreferences, [onboardingSteps[tutorialStep].key]: value });
+      if (tutorialStep < onboardingSteps.length - 1) {
+        setTutorialStep(tutorialStep + 1);
+      } else {
+        setShowTutorial(false);
+        localStorage.setItem("hasSeenOnboarding", "true");
+      }
     }
   };
 
@@ -110,40 +122,76 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full bg-background text-foreground transition-colors duration-500 selection:bg-primary/10 relative flex flex-col items-center justify-center font-sans overflow-hidden">
-      {/* Tutorial Overlay */}
+      {/* Onboarding Overlay */}
       <AnimatePresence>
         {showTutorial && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-md px-6"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-background/90 backdrop-blur-xl px-6"
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
-              className="max-w-md w-full bg-card p-8 rounded-[32px] border border-border/40 shadow-2xl space-y-6"
+              className="max-w-lg w-full bg-card p-10 rounded-[40px] border border-border/40 shadow-2xl space-y-10"
             >
-              <div className="space-y-2 text-center">
-                <h3 className="text-2xl font-semibold tracking-tight">{tutorialSteps[tutorialStep].title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{tutorialSteps[tutorialStep].description}</p>
+              <div className="space-y-3 text-center">
+                <h3 className="text-3xl font-semibold tracking-tight leading-tight">
+                  {onboardingSteps[tutorialStep].title}
+                </h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  {onboardingSteps[tutorialStep].description}
+                </p>
               </div>
               
-              <div className="flex items-center justify-between pt-4">
-                <div className="flex gap-1.5">
-                  {tutorialSteps.map((_, i) => (
+              <div className="grid grid-cols-1 gap-3">
+                {onboardingSteps[tutorialStep].options.map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => handleOnboardingNext(option)}
+                    className={`w-full p-5 rounded-2xl border transition-all text-left flex items-center justify-between group ${
+                      onboardingSteps[tutorialStep].multi && userPreferences.interests.includes(option)
+                        ? "bg-primary/10 border-primary text-primary"
+                        : "border-border/40 hover:border-primary/30 bg-background/50 text-foreground/80 hover:text-foreground"
+                    }`}
+                  >
+                    <span className="font-medium">{option}</span>
+                    <ArrowRight className={`w-4 h-4 transition-transform ${
+                      onboardingSteps[tutorialStep].multi && userPreferences.interests.includes(option)
+                        ? "translate-x-0 opacity-100"
+                        : "-translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
+                    }`} />
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between pt-6 border-t border-border/20">
+                <div className="flex gap-2">
+                  {onboardingSteps.map((_, i) => (
                     <div
                       key={i}
-                      className={`w-1.5 h-1.5 rounded-full transition-colors ${i === tutorialStep ? "bg-primary" : "bg-muted"}`}
+                      className={`w-2 h-2 rounded-full transition-all duration-500 ${
+                        i === tutorialStep ? "bg-primary w-6" : "bg-muted"
+                      }`}
                     />
                   ))}
                 </div>
-                <button
-                  onClick={nextStep}
-                  className="px-6 py-2.5 bg-foreground text-background rounded-xl font-medium text-sm hover:opacity-90 active:scale-95 transition-all"
-                >
-                  {tutorialStep === tutorialSteps.length - 1 ? "Get Started" : "Next"}
-                </button>
+                {onboardingSteps[tutorialStep].multi && (
+                  <button
+                    onClick={() => {
+                      if (tutorialStep < onboardingSteps.length - 1) {
+                        setTutorialStep(tutorialStep + 1);
+                      } else {
+                        setShowTutorial(false);
+                        localStorage.setItem("hasSeenOnboarding", "true");
+                      }
+                    }}
+                    className="px-8 py-3 bg-foreground text-background rounded-2xl font-semibold text-sm hover:opacity-90 transition-all active:scale-95 shadow-lg"
+                  >
+                    Continue
+                  </button>
+                )}
               </div>
             </motion.div>
           </motion.div>
