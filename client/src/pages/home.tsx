@@ -486,10 +486,16 @@ export default function Home() {
                           </div>
                           <ul className="space-y-3">
                             {takeaways.map((item, i) => (
-                              <li key={i} className="flex gap-3 text-sm leading-relaxed text-foreground/80 group/item">
+                              <motion.li 
+                                key={i} 
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.15 + (i * 0.1) }}
+                                className="flex gap-3 text-sm leading-relaxed text-foreground/80 group/item"
+                              >
                                 <span className="mt-1.5 w-1 h-1 rounded-full bg-foreground/30 shrink-0 group-hover/item:bg-primary transition-colors" />
                                 {item}
-                              </li>
+                              </motion.li>
                             ))}
                           </ul>
                         </motion.div>
@@ -589,8 +595,11 @@ export default function Home() {
                               { title: "Generative AI Trends", domain: "technologyreview.com", url: "#" },
                               { title: "LLM Research Paper", domain: "arxiv.org", url: "#" }
                             ].map((source, idx) => (
-                              <a
+                              <motion.a
                                 key={idx}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.7 + (idx * 0.1) }}
                                 href={source.url}
                                 className="flex items-center justify-between p-3 sm:p-3.5 rounded-xl border border-border/50 bg-card/50 hover:bg-muted hover:border-primary/20 transition-all group"
                               >
@@ -599,7 +608,7 @@ export default function Home() {
                                   <span className="text-[10px] sm:text-xs text-muted-foreground truncate">{source.domain}</span>
                                 </div>
                                 <ExternalLink className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-all flex-shrink-0" />
-                              </a>
+                              </motion.a>
                             ))}
                           </div>
                         </motion.div>
