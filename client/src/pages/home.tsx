@@ -346,8 +346,8 @@ export default function Home() {
                   transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                   className="space-y-12 md:space-y-16"
                 >
-                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-normal tracking-tight text-center leading-[1.1] text-foreground">
-                    Search the world's <span className="font-light italic text-muted-foreground">knowledge.</span>
+                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-normal tracking-tight text-center leading-[1.1] animate-shimmer">
+                    Search the world's <span className="font-light italic opacity-80">knowledge.</span>
                   </h1>
 
                   <div className="relative max-w-2xl mx-auto w-full group">

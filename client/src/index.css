@@ -92,7 +92,25 @@
   }
 }
 
-/* Custom subtle hover states */
-.hover-subtle {
-  @apply transition-all duration-300 hover:opacity-70 active:opacity-50;
+@layer utilities {
+  @keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--foreground)) 0%,
+      hsl(var(--foreground) / 0.4) 25%,
+      hsl(var(--foreground)) 50%,
+      hsl(var(--foreground) / 0.4) 75%,
+      hsl(var(--foreground)) 100%
+    );
+    background-size: 200% auto;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: shimmer 8s linear infinite;
+  }
 }
