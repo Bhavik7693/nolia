@@ -113,5 +113,7 @@
     background-clip: text;
     animation: shimmer 8s linear infinite;
     -webkit-text-fill-color: transparent;
+    display: inline-block;
+    vertical-align: bottom;
   }
 }
