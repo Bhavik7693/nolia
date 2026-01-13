@@ -13,7 +13,7 @@ export function LoadingView(props: {
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 1.1 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="flex flex-col items-center justify-center space-y-10"
+      className="flex flex-col items-center justify-center space-y-8 sm:space-y-10"
     >
       <div className="relative flex items-center justify-center">
         <motion.div

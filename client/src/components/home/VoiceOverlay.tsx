@@ -45,7 +45,7 @@ export function VoiceOverlay(props: {
           aria-modal="true"
           className="fixed inset-0 z-[110] flex items-center justify-center bg-background/95 backdrop-blur-2xl"
         >
-          <div className="w-full max-w-lg px-4">
+          <div className="w-full max-w-lg px-4 max-h-[calc(100vh-2rem)] supports-[height:100dvh]:max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="rounded-3xl border border-border/40 bg-card/20 shadow-2xl backdrop-blur-sm p-6 sm:p-8">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">

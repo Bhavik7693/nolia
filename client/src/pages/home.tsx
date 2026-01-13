@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, ApiError } from "@/lib/queryClient";
 import {
   VoiceOverlay,
   type VoiceOverlayLanguage,
@@ -197,6 +197,60 @@ export default function Home() {
     anonIdRef.current = id;
     window.localStorage.setItem("noliaAnonId", id);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (showHistory) return;
+    if (voiceOverlayOpen) return;
+
+    let startX: number | null = null;
+    let startY: number | null = null;
+    let handled = false;
+
+    const onStart = (e: TouchEvent) => {
+      if (handled) return;
+      const t = e.touches[0];
+      if (!t) return;
+      const edgeZonePx = 24;
+      if (t.clientX < window.innerWidth - edgeZonePx) return;
+      startX = t.clientX;
+      startY = t.clientY;
+    };
+
+    const onMove = (e: TouchEvent) => {
+      if (handled) return;
+      if (startX === null || startY === null) return;
+      const t = e.touches[0];
+      if (!t) return;
+
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      if (Math.abs(dy) > 40) return;
+
+      if (dx < -90) {
+        handled = true;
+        startX = null;
+        startY = null;
+        setShowHistory(true);
+      }
+    };
+
+    const onEnd = () => {
+      startX = null;
+      startY = null;
+      handled = false;
+    };
+
+    window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchmove", onMove, { passive: true });
+    window.addEventListener("touchend", onEnd);
+
+    return () => {
+      window.removeEventListener("touchstart", onStart);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onEnd);
+    };
+  }, [showHistory, voiceOverlayOpen]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -437,7 +491,37 @@ export default function Home() {
         return;
       }
       console.error(err);
-      toast.error("Failed to get an answer. Configure API keys and try again.");
+
+      const message = (() => {
+        if (err instanceof ApiError) {
+          if (err.status === 429) {
+            if (typeof err.retryAfterSeconds === "number") {
+              return `You're doing that too fast. Try again in ${err.retryAfterSeconds}s.`;
+            }
+            return "You're doing that too fast. Please wait and try again.";
+          }
+          if (err.status === 400) {
+            return "Please check your question and try again.";
+          }
+          if (err.status === 401 || err.status === 403) {
+            return "This service is temporarily unavailable. Please try again later.";
+          }
+          if (err.status === 502 || err.status === 503 || err.status === 504) {
+            return "NOLIA is temporarily unavailable. Please try again in a moment.";
+          }
+          return "Something went wrong. Please try again.";
+        }
+
+        const raw = (err as any)?.message;
+        if (typeof raw === "string") {
+          if (/failed\s+to\s+fetch/i.test(raw) || /networkerror/i.test(raw)) {
+            return "Looks like you're offline. Check your connection and try again.";
+          }
+        }
+        return "Something went wrong. Please try again.";
+      })();
+
+      toast.error(message);
       setView("home");
     }
   };
@@ -643,7 +727,16 @@ export default function Home() {
         toast.success("Share link copied to clipboard");
       }
     } catch (err) {
+      if ((err as any)?.name === "AbortError") {
+        return;
+      }
       console.error("Share failed:", err);
+      try {
+        await navigator.clipboard.writeText(`${shareData.text}\n\nShared via NOLIA: ${shareData.url}`);
+        toast.success("Share link copied to clipboard");
+      } catch {
+        toast.error("Couldn't share right now. Please try again.");
+      }
     }
   };
 

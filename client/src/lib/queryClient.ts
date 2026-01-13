@@ -3,7 +3,54 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+
+    let message = text;
+    let requestId: string | undefined;
+
+    try {
+      const json = JSON.parse(text) as unknown;
+      if (json && typeof json === "object") {
+        const maybeMessage = (json as any).message;
+        const maybeRequestId = (json as any).requestId;
+        if (typeof maybeMessage === "string" && maybeMessage.trim()) {
+          message = maybeMessage;
+        }
+        if (typeof maybeRequestId === "string" && maybeRequestId.trim()) {
+          requestId = maybeRequestId;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    const headerRequestId = res.headers.get("x-request-id");
+    if (!requestId && headerRequestId) {
+      requestId = headerRequestId;
+    }
+
+    const retryAfterRaw = res.headers.get("retry-after");
+    const retryAfterSeconds = retryAfterRaw ? Number.parseInt(retryAfterRaw, 10) : undefined;
+
+    throw new ApiError({
+      status: res.status,
+      message,
+      requestId,
+      retryAfterSeconds: Number.isFinite(retryAfterSeconds as number) ? retryAfterSeconds : undefined,
+    });
+  }
+}
+
+export class ApiError extends Error {
+  status: number;
+  requestId?: string;
+  retryAfterSeconds?: number;
+
+  constructor(params: { status: number; message: string; requestId?: string; retryAfterSeconds?: number }) {
+    super(params.message);
+    this.name = "ApiError";
+    this.status = params.status;
+    this.requestId = params.requestId;
+    this.retryAfterSeconds = params.retryAfterSeconds;
   }
 }
 

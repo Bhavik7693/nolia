@@ -142,12 +142,12 @@ export function AnswerView(props: {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.98 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="relative w-full max-w-3xl mx-auto flex flex-col h-[calc(100vh-140px)] sm:h-[calc(100vh-160px)]"
+      className="relative w-full max-w-3xl mx-auto flex flex-col h-[calc(100vh-140px)] sm:h-[calc(100vh-160px)] supports-[height:100dvh]:h-[calc(100dvh-140px)] sm:supports-[height:100dvh]:h-[calc(100dvh-160px)]"
     >
       {/* Top Fade Gradient */}
       <div className="absolute top-0 left-0 right-0 h-8 sm:h-12 bg-gradient-to-b from-background to-transparent z-20 pointer-events-none" />
 
-      <div className="flex-1 overflow-y-auto pr-2 scrollbar-none">
+      <div className="flex-1 overflow-y-auto pr-0 sm:pr-2 scrollbar-none">
         <div className="space-y-6 sm:space-y-8 pb-12 pt-8 sm:pt-10">
           <div>
             <h1 className="text-xl sm:text-2xl md:text-3xl font-medium tracking-tight leading-snug">{query}</h1>
@@ -313,7 +313,7 @@ export function AnswerView(props: {
       {/* Bottom Fade Gradient */}
       <div className="absolute bottom-20 sm:bottom-16 left-0 right-0 h-8 sm:h-12 bg-gradient-to-t from-background to-transparent z-20 pointer-events-none" />
 
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6 pt-6 sm:pt-8 border-t border-border mt-auto bg-background/80 backdrop-blur-sm z-30">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6 pt-5 sm:pt-8 border-t border-border mt-auto bg-background/80 backdrop-blur-sm z-30">
         <button
           onClick={onGoHome}
           className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors order-2 sm:order-1 flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-muted"
@@ -321,7 +321,7 @@ export function AnswerView(props: {
           <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 rotate-180" />
           New Search
         </button>
-        <div className="flex gap-3 sm:gap-6 order-1 sm:order-2 w-full sm:w-auto justify-center sm:justify-end">
+        <div className="flex flex-wrap gap-3 sm:gap-6 order-1 sm:order-2 w-full sm:w-auto justify-center sm:justify-end">
           <button
             onClick={onShare}
             className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors group"
