@@ -8,9 +8,20 @@ export function HomeSearchView(props: {
   onSubmit: () => void;
   isListening: boolean;
   onToggleListening: () => void;
+  style: "Concise" | "Balanced" | "Detailed" | "Creative";
+  onCycleStyle: () => void;
   textAreaRef: RefObject<HTMLTextAreaElement | null>;
 }) {
-  const { query, onChangeQuery, onSubmit, isListening, onToggleListening, textAreaRef } = props;
+  const {
+    query,
+    onChangeQuery,
+    onSubmit,
+    isListening,
+    onToggleListening,
+    style,
+    onCycleStyle,
+    textAreaRef,
+  } = props;
 
   return (
     <motion.div
@@ -55,6 +66,14 @@ export function HomeSearchView(props: {
               }`}
             >
               <Mic className="w-5 h-5" />
+            </button>
+
+            <button
+              onClick={onCycleStyle}
+              className="h-12 px-4 rounded-2xl border border-border/40 bg-card/20 hover:bg-muted text-xs font-medium text-muted-foreground hover:text-foreground transition-all active:scale-95"
+              title="Change answer style"
+            >
+              {style}
             </button>
           </div>
           <div className="absolute bottom-6 right-6">

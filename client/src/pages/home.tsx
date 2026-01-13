@@ -3,8 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { apiRequest } from "@/lib/queryClient";
-import { VoiceOverlay } from "@/components/home/VoiceOverlay";
-import { OnboardingOverlay } from "@/components/home/OnboardingOverlay";
+import {
+  VoiceOverlay,
+  type VoiceOverlayLanguage,
+  type VoiceOverlayStage,
+} from "@/components/home/VoiceOverlay";
 import { HeaderNav } from "@/components/home/HeaderNav";
 import { HistorySidebar } from "@/components/home/HistorySidebar";
 import { HomeSearchView } from "@/components/home/views/HomeSearchView";
@@ -58,6 +61,7 @@ const takeaways = [
 ];
 
 export default function Home() {
+  const anonIdRef = useRef<string>("");
   const [dark, setDark] = useState(() => {
     if (typeof window === "undefined") return false;
     const saved = window.localStorage.getItem("theme");
@@ -74,23 +78,56 @@ export default function Home() {
     { url: string; title?: string }[]
   >([]);
   const [copied, setCopied] = useState(false);
-  const [history, setHistory] = useState<{ q: string; a: string }[]>([]);
+  const [history, setHistory] = useState<{ q: string; a: string }[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem("noliaHistory");
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .filter((x) => x && typeof x.q === "string" && typeof x.a === "string")
+        .slice(0, 20);
+    } catch {
+      return [];
+    }
+  });
   const [showHistory, setShowHistory] = useState(false);
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
   const [comment, setComment] = useState("");
   const [showCommentBox, setShowCommentBox] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [userPreferences, setUserPreferences] = useState({
-    experience: "",
-    interests: [] as string[],
-    style: "Balanced",
+  const [userPreferences, setUserPreferences] = useState<{
+    style: "Concise" | "Balanced" | "Detailed" | "Creative";
+  }>(() => {
+    if (typeof window === "undefined") return { style: "Balanced" };
+    try {
+      const raw = window.localStorage.getItem("noliaPrefs");
+      const parsed = raw ? JSON.parse(raw) : null;
+      const style = parsed?.style;
+      if (style === "Concise" || style === "Balanced" || style === "Detailed" || style === "Creative") {
+        return { style };
+      }
+      return { style: "Balanced" };
+    } catch {
+      return { style: "Balanced" };
+    }
   });
-  const [tutorialStep, setTutorialStep] = useState(0);
+
+  const [preferredLanguage, setPreferredLanguage] = useState<"auto" | "en" | "hi">(() => {
+    if (typeof window === "undefined") return "auto";
+    const saved = window.localStorage.getItem("noliaPreferredLanguage");
+    return saved === "en" || saved === "hi" || saved === "auto" ? saved : "auto";
+  });
   const [isListening, setIsListening] = useState(false);
+  const [voiceOverlayOpen, setVoiceOverlayOpen] = useState(false);
+  const [voiceStage, setVoiceStage] = useState<VoiceOverlayStage>("listening");
   const [voiceText, setVoiceText] = useState("");
+  const [voiceError, setVoiceError] = useState<string | undefined>(undefined);
+  const [voiceLanguage, setVoiceLanguage] = useState<VoiceOverlayLanguage>("auto");
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const voiceCancelledRef = useRef(false);
   const lastVoiceTranscriptRef = useRef("");
+  const voiceLanguageTouchedRef = useRef(false);
+  const askAbortRef = useRef<AbortController | null>(null);
   const themeMqlRef = useRef<MediaQueryList | null>(null);
   const themeMqlHandlerRef = useRef<((e: MediaQueryListEvent) => void) | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -140,51 +177,41 @@ export default function Home() {
   }, [view, showHistory]);
 
   useEffect(() => {
-    const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
-    if (!hasSeenOnboarding) {
-      setShowTutorial(true);
+    if (typeof window === "undefined") return;
+
+    const existing = window.localStorage.getItem("noliaAnonId");
+    if (existing && existing.trim()) {
+      anonIdRef.current = existing;
+      return;
     }
+
+    let id = "";
+    try {
+      id = window.crypto?.randomUUID?.() ?? "";
+    } catch {
+      id = "";
+    }
+    if (!id) {
+      id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+    anonIdRef.current = id;
+    window.localStorage.setItem("noliaAnonId", id);
   }, []);
 
-  const onboardingSteps = [
-    {
-      title: "How experienced are you with AI?",
-      description: "We'll tailor the answer complexity to your level.",
-      options: ["Beginner", "Intermediate", "Expert"],
-      key: "experience",
-    },
-    {
-      title: "What are your main interests?",
-      description: "Pick topics you'll likely ask about most.",
-      options: ["Technology", "Science", "Business", "History", "Arts", "Design"],
-      key: "interests",
-      multi: true,
-    },
-    {
-      title: "Preferred answer style?",
-      description: "Choose how you want the information presented.",
-      options: ["Concise", "Balanced", "Detailed", "Creative"],
-      key: "style",
-    },
-  ];
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("noliaHistory", JSON.stringify(history.slice(0, 20)));
+  }, [history]);
 
-  const handleOnboardingNext = (value: string) => {
-    if (onboardingSteps[tutorialStep].multi) {
-      const current = userPreferences.interests;
-      const updated = current.includes(value) 
-        ? current.filter(i => i !== value)
-        : [...current, value];
-      setUserPreferences({ ...userPreferences, interests: updated });
-    } else {
-      setUserPreferences({ ...userPreferences, [onboardingSteps[tutorialStep].key]: value });
-      if (tutorialStep < onboardingSteps.length - 1) {
-        setTutorialStep(tutorialStep + 1);
-      } else {
-        setShowTutorial(false);
-        localStorage.setItem("hasSeenOnboarding", "true");
-      }
-    }
-  };
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("noliaPrefs", JSON.stringify(userPreferences));
+  }, [userPreferences]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("noliaPreferredLanguage", preferredLanguage);
+  }, [preferredLanguage]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
@@ -352,9 +379,15 @@ export default function Home() {
     document.title = pageTitle;
   }, [pageTitle]);
 
-  const go = async (nextQuery?: string) => {
+  const go = async (
+    nextQuery?: string,
+    opts?: { language?: "auto" | "en" | "hi"; useWeb?: boolean },
+  ) => {
     const q = (nextQuery ?? query).trim();
     if (!q) return;
+
+    const reqLanguage = opts?.language ?? preferredLanguage;
+    const reqUseWeb = opts?.useWeb ?? true;
 
     setQuery(q);
     setView("loading");
@@ -362,13 +395,27 @@ export default function Home() {
     setComment("");
     setShowCommentBox(false);
 
+    if (askAbortRef.current) {
+      try {
+        askAbortRef.current.abort();
+      } catch {
+        // ignore
+      }
+    }
+    const controller = new AbortController();
+    askAbortRef.current = controller;
+
     try {
+      const anonId = anonIdRef.current;
       const res = await apiRequest("POST", "/api/ask", {
         question: q,
         style: userPreferences.style,
         mode: "verified",
-        language: "auto",
-        useWeb: true,
+        language: reqLanguage,
+        useWeb: reqUseWeb,
+      }, {
+        signal: controller.signal,
+        headers: anonId ? { "X-Nolia-Anon-Id": anonId } : undefined,
       });
       const data = (await res.json()) as {
         answer: string;
@@ -383,9 +430,12 @@ export default function Home() {
           ? data.followUps
           : buildFallbackFollowUps(q),
       );
-      setHistory((prev) => [{ q, a: data.answer }, ...prev].slice(0, 5));
+      setHistory((prev) => [{ q, a: data.answer }, ...prev].slice(0, 20));
       setView("answer");
     } catch (err) {
+      if ((err as any)?.name === "AbortError") {
+        return;
+      }
       console.error(err);
       toast.error("Failed to get an answer. Configure API keys and try again.");
       setView("home");
@@ -402,6 +452,17 @@ export default function Home() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const detectVoiceLanguage = (text: string): VoiceOverlayLanguage => {
+    if (/[^\u0000-\u007F]/.test(text) && /[\u0900-\u097F]/.test(text)) return "hi";
+    return "en";
+  };
+
+  const toRecognitionLang = (lang: VoiceOverlayLanguage): string => {
+    if (lang === "hi") return "hi-IN";
+    if (lang === "en") return "en-US";
+    return window.navigator.language || "en-US";
+  };
+
   const startListening = () => {
     const Ctor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!Ctor) {
@@ -414,11 +475,15 @@ export default function Home() {
     voiceCancelledRef.current = false;
     lastVoiceTranscriptRef.current = "";
     setVoiceText("");
+    setVoiceError(undefined);
+    setVoiceStage("listening");
+    setVoiceOverlayOpen(true);
+    voiceLanguageTouchedRef.current = false;
 
     const recognition = recognitionRef.current ?? new Ctor();
     recognitionRef.current = recognition;
 
-    recognition.lang = window.navigator.language || "en-US";
+    recognition.lang = toRecognitionLang(voiceLanguage);
     recognition.interimResults = true;
     recognition.continuous = false;
 
@@ -433,12 +498,14 @@ export default function Home() {
       const code = ev?.error || "";
       voiceCancelledRef.current = true;
       if (code === "not-allowed" || code === "service-not-allowed") {
-        toast.error("Microphone permission denied. Please allow mic access in your browser.");
+        setVoiceError("Microphone permission denied. Please allow mic access in your browser.");
       } else {
         const msg = ev?.message || (code ? `Voice input failed: ${code}` : "Voice input failed");
-        toast.error(msg);
+        setVoiceError(msg);
       }
       setIsListening(false);
+      setVoiceStage("error");
+      setVoiceOverlayOpen(true);
     };
 
     recognition.onend = () => {
@@ -447,28 +514,39 @@ export default function Home() {
 
       const finalText = lastVoiceTranscriptRef.current.trim();
       if (!finalText) {
-        toast.error("No speech detected");
+        setVoiceError("No speech detected");
+        setVoiceStage("error");
+        setVoiceOverlayOpen(true);
         return;
       }
 
       setQuery(finalText);
-      toast.success("Voice captured");
-      void go(finalText);
+      if (!voiceLanguageTouchedRef.current) {
+        setVoiceLanguage(detectVoiceLanguage(finalText));
+      }
+      setVoiceStage("review");
+      setVoiceOverlayOpen(true);
     };
 
     try {
       setIsListening(true);
-      toast.info("Listening…");
+      setVoiceOverlayOpen(true);
+      setVoiceStage("listening");
       recognition.start();
     } catch {
       setIsListening(false);
-      toast.error("Unable to start voice input");
+      setVoiceError("Unable to start voice input");
+      setVoiceStage("error");
+      setVoiceOverlayOpen(true);
     }
   };
 
-  const stopListening = () => {
+  const cancelVoice = () => {
     voiceCancelledRef.current = true;
     setIsListening(false);
+    setVoiceOverlayOpen(false);
+    setVoiceError(undefined);
+    setVoiceStage("listening");
     const r = recognitionRef.current;
     if (!r) return;
     try {
@@ -476,6 +554,59 @@ export default function Home() {
     } catch {
       // ignore
     }
+  };
+
+  const stopVoice = () => {
+    const r = recognitionRef.current;
+    if (!r) return;
+
+    voiceCancelledRef.current = false;
+    setIsListening(false);
+    setVoiceStage("listening");
+    setVoiceOverlayOpen(true);
+
+    try {
+      r.stop();
+    } catch {
+      // ignore
+    }
+  };
+
+  const retryVoice = () => {
+    voiceCancelledRef.current = true;
+    setIsListening(false);
+    setVoiceText("");
+    setVoiceError(undefined);
+    setVoiceStage("listening");
+    setVoiceOverlayOpen(true);
+
+    const r = recognitionRef.current;
+    if (r) {
+      try {
+        r.abort();
+      } catch {
+        // ignore
+      }
+    }
+
+    window.setTimeout(() => {
+      startListening();
+    }, 0);
+  };
+
+  const sendVoice = () => {
+    const text = voiceText.trim();
+    if (!text) return;
+
+    const lang = voiceLanguage;
+    setVoiceOverlayOpen(false);
+    setVoiceError(undefined);
+    setVoiceStage("listening");
+    setQuery(text);
+
+    const resolved = lang === "auto" ? "auto" : lang;
+    setPreferredLanguage(resolved);
+    void go(text, { language: resolved, useWeb: true });
   };
 
   useEffect(() => {
@@ -486,6 +617,14 @@ export default function Home() {
         r.abort();
       } catch {
         // ignore
+      }
+
+      if (askAbortRef.current) {
+        try {
+          askAbortRef.current.abort();
+        } catch {
+          // ignore
+        }
       }
     };
   }, []);
@@ -513,23 +652,21 @@ export default function Home() {
       <Toaster position="top-center" />
       
       {/* Voice Search Overlay */}
-      <VoiceOverlay open={isListening} voiceText={voiceText} onClose={stopListening} />
-
-      {/* Onboarding Overlay */}
-      <OnboardingOverlay
-        open={showTutorial}
-        steps={onboardingSteps}
-        stepIndex={tutorialStep}
-        selectedInterests={userPreferences.interests}
-        onSelectOption={handleOnboardingNext}
-        onContinue={() => {
-          if (tutorialStep < onboardingSteps.length - 1) {
-            setTutorialStep(tutorialStep + 1);
-          } else {
-            setShowTutorial(false);
-            localStorage.setItem("hasSeenOnboarding", "true");
-          }
+      <VoiceOverlay
+        open={voiceOverlayOpen}
+        stage={voiceStage}
+        value={voiceText}
+        error={voiceError}
+        language={voiceLanguage}
+        onChangeValue={setVoiceText}
+        onChangeLanguage={(v) => {
+          voiceLanguageTouchedRef.current = true;
+          setVoiceLanguage(v);
         }}
+        onCancel={cancelVoice}
+        onStop={stopVoice}
+        onRetry={retryVoice}
+        onSend={sendVoice}
       />
 
       <AnimatePresence>
@@ -558,6 +695,24 @@ export default function Home() {
               setShowHistory(false);
             }}
             onClear={() => setHistory([])}
+            onResetPersonalization={() => {
+              if (typeof window === "undefined") return;
+              window.localStorage.removeItem("noliaAnonId");
+              window.localStorage.removeItem("noliaHistory");
+              window.localStorage.removeItem("noliaPrefs");
+              window.localStorage.removeItem("noliaPreferredLanguage");
+              anonIdRef.current = "";
+              setHistory([]);
+              setUserPreferences({ style: "Balanced" });
+              setPreferredLanguage("auto");
+              setShowHistory(false);
+              toast.success("Personalization reset");
+              window.setTimeout(() => {
+                const id = (window.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+                anonIdRef.current = id;
+                window.localStorage.setItem("noliaAnonId", id);
+              }, 0);
+            }}
           />
 
           <main className="w-full max-w-2xl px-4 sm:px-6 py-20 flex flex-col justify-center min-h-screen">
@@ -568,7 +723,20 @@ export default function Home() {
                   onChangeQuery={setQuery}
                   onSubmit={() => void go()}
                   isListening={isListening}
-                  onToggleListening={isListening ? stopListening : startListening}
+                  onToggleListening={isListening ? stopVoice : startListening}
+                  style={userPreferences.style}
+                  onCycleStyle={() => {
+                    const next =
+                      userPreferences.style === "Concise"
+                        ? "Balanced"
+                        : userPreferences.style === "Balanced"
+                          ? "Detailed"
+                          : userPreferences.style === "Detailed"
+                            ? "Creative"
+                            : "Concise";
+                    setUserPreferences({ style: next });
+                    toast.success(`Style: ${next}`);
+                  }}
                   textAreaRef={textAreaRef}
                 />
               )}

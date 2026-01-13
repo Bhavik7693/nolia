@@ -22,6 +22,70 @@ type SourceCandidate = EvidenceSource & {
   normUrl: string;
 };
 
+type SafetyBlock = {
+  reason: "self_harm" | "violence" | "weapons" | "drugs" | "hacking" | "sexual_content";
+};
+
+function detectSafetyBlock(question: string): SafetyBlock | null {
+  const q = question.toLowerCase();
+
+  if (/(suicide|kill\s+myself|self\s*harm|cut\s+myself|want\s+to\s+die)/i.test(q)) {
+    return { reason: "self_harm" };
+  }
+
+  if (/(how\s+to\s+make\s+a\s+bomb|make\s+an\s+explosive|pressure\s+cooker\s+bomb)/i.test(q)) {
+    return { reason: "violence" };
+  }
+
+  if (/(build\s+a\s+gun|make\s+a\s+gun|ghost\s+gun|3d\s*print\s+a\s+gun)/i.test(q)) {
+    return { reason: "weapons" };
+  }
+
+  if (/(how\s+to\s+make\s+meth|cook\s+meth|make\s+cocaine|synthesize\s+fentanyl)/i.test(q)) {
+    return { reason: "drugs" };
+  }
+
+  if (/(ddos|sql\s+injection|xss\b|hack\s+into|steal\s+password|phishing|malware|ransomware)/i.test(q)) {
+    return { reason: "hacking" };
+  }
+
+  if (/(child\s+porn|minor\s+sex|underage\s+sex)/i.test(q)) {
+    return { reason: "sexual_content" };
+  }
+
+  return null;
+}
+
+function buildSafetyRefusal(input: AskRequest, block: SafetyBlock): AskResponse {
+  const start = Date.now();
+  const hindi = looksHindiQuestion(input);
+
+  const msg = hindi
+    ? "Main is request me madad nahi kar sakti. Agar aap turant khatre me ho, apne area ki emergency services ya kisi trusted person se turant baat karein."
+    : "I can't help with that. If you're in immediate danger, contact local emergency services or someone you trust right now.";
+
+  const followUps = hindi
+    ? [
+        "Kya aap safe hain abhi?",
+        "Aap kis type ki help chahte hain (support/resources)?",
+        "Main aapko safe alternatives ke saath guide kar sakti hoon.",
+      ]
+    : [
+        "Are you safe right now?",
+        "What kind of help or resources are you looking for?",
+        "I can offer safer alternatives or general guidance.",
+      ];
+
+  return {
+    provider: "openrouter",
+    model: `policy-${block.reason}`,
+    answer: msg,
+    citations: [],
+    followUps,
+    latencyMs: Date.now() - start,
+  };
+}
+
 function classifyLocalClockIntent(question: string): "date" | "time" | "datetime" | null {
   const q = question.trim().toLowerCase();
 
@@ -236,6 +300,8 @@ function buildSystemPrompt(input: AskRequest): string {
     "If no sources are provided, say you do not have sources to cite and avoid confident claims, exact numbers, or exact dates.",
     "If sources do not support a claim, say you could not verify it from the sources rather than guessing.",
     "If you are unsure, say so instead of guessing.",
+    "Safety policy: refuse requests for self-harm, violence, weapons, illegal drugs, hacking/malware, or sexual content involving minors.",
+    "For medical, legal, or financial topics: provide general info and encourage consulting a qualified professional.",
   ].join("\n");
 }
 
@@ -405,6 +471,11 @@ export async function askPipeline(input: AskRequest): Promise<AskResponse> {
     };
   }
 
+  const safetyBlock = detectSafetyBlock(input.question);
+  if (safetyBlock) {
+    return buildSafetyRefusal(input, safetyBlock);
+  }
+
   if (!env.OPENROUTER_API_KEY) {
     throw new HttpError(503, "OPENROUTER_API_KEY is not configured");
   }
@@ -546,18 +617,24 @@ export async function askPipeline(input: AskRequest): Promise<AskResponse> {
     );
 
     const maxFetch = 3;
+    const toFetch: number[] = [];
     for (let i = 0; i < Math.min(maxFetch, sources.length); i += 1) {
       if (sources[i].extractedText) continue;
-      try {
-        const pageText = await fetchPageText({
-          url: sources[i].url,
-          timeoutMs: 10_000,
-          maxBytes: 1_000_000,
-        });
-        sources[i].extractedText = pageText;
-      } catch {
-        // Ignore per-source failures; we can still answer from snippets/other sources.
-      }
+      toFetch.push(i);
+    }
+
+    if (toFetch.length) {
+      const settled = await Promise.allSettled(
+        toFetch.map(async (idx) => {
+          const pageText = await fetchPageText({
+            url: sources[idx].url,
+            timeoutMs: 10_000,
+            maxBytes: 1_000_000,
+          });
+          sources[idx].extractedText = pageText;
+        }),
+      );
+      void settled;
     }
   }
 

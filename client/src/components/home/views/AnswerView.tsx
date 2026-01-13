@@ -186,6 +186,10 @@ export function AnswerView(props: {
               </ul>
             </motion.div>
 
+            <div className="text-xs text-muted-foreground bg-card/30 border border-border/40 rounded-2xl px-4 py-3">
+              NOLIA can make mistakes. For medical, legal, or financial decisions, verify with a qualified professional.
+            </div>
+
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
               {renderMarkdownSafe(displayAnswer, { onCitationClick })}
             </motion.div>

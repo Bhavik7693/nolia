@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Trash2 } from "lucide-react";
+import { RotateCcw, Trash2 } from "lucide-react";
 
 export function HistorySidebar(props: {
   open: boolean;
@@ -7,8 +7,9 @@ export function HistorySidebar(props: {
   onClose: () => void;
   onSelectQuery: (query: string) => void;
   onClear: () => void;
+  onResetPersonalization: () => void;
 }) {
-  const { open, history, onClose, onSelectQuery, onClear } = props;
+  const { open, history, onClose, onSelectQuery, onClear, onResetPersonalization } = props;
 
   return (
     <AnimatePresence>
@@ -45,15 +46,24 @@ export function HistorySidebar(props: {
               ))
             )}
           </div>
-          {history.length > 0 && (
+          <div className="absolute bottom-6 left-6 right-6 grid grid-cols-1 gap-2">
             <button
-              onClick={onClear}
-              className="absolute bottom-6 left-6 right-6 h-10 border border-border rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-destructive/10 hover:text-destructive transition-colors active:scale-95"
+              onClick={onResetPersonalization}
+              className="h-10 border border-border rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-muted transition-colors active:scale-95"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              Clear History
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset Personalization
             </button>
-          )}
+            {history.length > 0 && (
+              <button
+                onClick={onClear}
+                className="h-10 border border-border rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-destructive/10 hover:text-destructive transition-colors active:scale-95"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Clear History
+              </button>
+            )}
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
