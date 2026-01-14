@@ -26,6 +26,32 @@ type SafetyBlock = {
   reason: "self_harm" | "violence" | "weapons" | "drugs" | "hacking" | "sexual_content";
 };
 
+type RecencyIntent = {
+  wantsFresh: boolean;
+  wantsVeryFresh: boolean;
+  isFinance: boolean;
+};
+
+function detectRecencyIntent(question: string): RecencyIntent {
+  const q = question.toLowerCase();
+
+  const wantsVeryFresh =
+    /\b(today|right\s+now|as\s+of\s+now|breaking)\b/i.test(q) ||
+    /\b(aaj|abhi|breaking|taaza|taza)\b/i.test(q);
+
+  const wantsFresh =
+    wantsVeryFresh ||
+    /\b(latest|current|recent|news|update|updates|this\s+week|this\s+month|trending)\b/i.test(q) ||
+    /\b(haal|haal\s+hi|latest|current|news|update|updates|is\s+hafte|iss\s+week)\b/i.test(q);
+
+  const isFinance =
+    /\b(stock|stocks|share|shares|market|price|forecast|nifty|sensex|nasdaq|dow|s\&p|crypto|bitcoin|ethereum|forex|usd|inr|rupee|inflation|interest\s*rate)\b/i.test(
+      q,
+    );
+
+  return { wantsFresh, wantsVeryFresh, isFinance };
+}
+
 function detectSafetyBlock(question: string): SafetyBlock | null {
   const q = question.toLowerCase();
 
@@ -144,6 +170,19 @@ function extractCitationNumbers(answer: string): number[] {
   return Array.from(new Set(numbers)).sort((a, b) => a - b);
 }
 
+function sanitizeCitationNumbers(nums: number[], max: number): number[] {
+  const filtered = nums.filter((n) => Number.isFinite(n) && n >= 1 && n <= max);
+  return Array.from(new Set(filtered)).sort((a, b) => a - b);
+}
+
+function getHostnameSafe(url: string): string {
+  try {
+    return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
 function normalizeUrlForDedupe(raw: string): { key: string; cleanedUrl: string } | null {
   try {
     const url = new URL(raw);
@@ -251,8 +290,20 @@ function scoreSource(params: {
   });
   score += Math.min(6, hits);
 
-  if (params.wantsFresh && /\bpublished:\s*\d{4}-\d{2}-\d{2}\b/i.test(params.snippet)) {
-    score += 2;
+  if (params.wantsFresh) {
+    const m = params.snippet.match(/\bpublished:\s*(\d{4}-\d{2}-\d{2})\b/i);
+    if (m?.[1]) {
+      const ts = Date.parse(m[1]);
+      if (Number.isFinite(ts)) {
+        const ageDays = Math.max(0, Math.floor((Date.now() - ts) / (24 * 60 * 60 * 1000)));
+        if (ageDays <= 2) score += 4;
+        else if (ageDays <= 7) score += 3;
+        else if (ageDays <= 30) score += 2;
+        else score += 1;
+      } else {
+        score += 2;
+      }
+    }
   }
 
   return score;
@@ -281,28 +332,45 @@ function buildEvidenceBlock(sources: EvidenceSource[]): string {
   return lines.join("\n");
 }
 
-function buildSystemPrompt(input: AskRequest): string {
+function buildSystemPrompt(
+  input: AskRequest,
+  options?: { strictCitations?: boolean; sourcesCount?: number },
+): string {
   const style = input.style ?? "Balanced";
   const mode = input.mode ?? "verified";
   const language = input.language ?? "auto";
+  const referenceDateUtc = new Date().toISOString().slice(0, 10);
+
+  const strict = options?.strictCitations ?? false;
+  const sourcesCount = options?.sourcesCount;
 
   return [
     "You are NOLIA, an assistant that answers accurately.",
     `Style: ${style}.`,
     `Mode: ${mode}.`,
     `Language: ${language}. If language is auto, reply in the user's language.`,
+    `Reference date (UTC): ${referenceDateUtc}. Use this only to interpret words like 'today' when needed.`,
     "Output formatting: you MAY use simple Markdown for readability (short headings, bullet lists, and code blocks).",
     "Do not repeat the same answer or paragraphs. Avoid duplicated content.",
     "Do not add a 'Sources' section or 'Sources:' footer. Use only inline citations like [1], [2].",
     "If the user asks for the latest/current information, prioritize the most recent sources available and avoid guessing dates.",
+    "When sources are provided, you must not introduce facts, numbers, or dates that are not supported by the sources.",
     "If sources are provided, you MUST cite them using [n] and only use information supported by the sources.",
     "When sources are provided, each paragraph or bullet list item should include at least one citation [n] for factual claims.",
     "If no sources are provided, say you do not have sources to cite and avoid confident claims, exact numbers, or exact dates.",
     "If sources do not support a claim, say you could not verify it from the sources rather than guessing.",
     "If you are unsure, say so instead of guessing.",
+    strict
+      ? "CRITICAL: Citations are REQUIRED. Do not output any citation number outside the provided range. If you cannot cite a claim, say you cannot verify it from the sources."
+      : "",
+    typeof sourcesCount === "number" && sourcesCount > 0
+      ? `Citations: Use only [1]..[${sourcesCount}] and cite relevant sources frequently.`
+      : "",
     "Safety policy: refuse requests for self-harm, violence, weapons, illegal drugs, hacking/malware, or sexual content involving minors.",
     "For medical, legal, or financial topics: provide general info and encourage consulting a qualified professional.",
-  ].join("\n");
+  ]
+    .filter((l) => !!l)
+    .join("\n");
 }
 
 const followUpsSchema = z
@@ -494,12 +562,11 @@ export async function askPipeline(input: AskRequest): Promise<AskResponse> {
   const sources: EvidenceSource[] = [];
 
   if (useWeb) {
-    const wantsFresh = /\b(latest|today|current|news|update|updates|breaking|recent|now)\b/i.test(
-      input.question,
-    );
+    const recency = detectRecencyIntent(input.question);
+    const wantsFresh = recency.wantsFresh;
 
-    const topic = input.webTopic ?? (wantsFresh ? "news" : "general");
-    const timeRange = input.webTimeRange ?? (wantsFresh ? "week" : undefined);
+    const topic = input.webTopic ?? (recency.isFinance ? "finance" : wantsFresh ? "news" : "general");
+    const timeRange = input.webTimeRange ?? (recency.wantsVeryFresh ? "day" : wantsFresh ? "week" : undefined);
 
     const base = input.question.trim();
     const core = extractTopicFromQuestion(input.question).slice(0, 120);
@@ -507,6 +574,8 @@ export async function askPipeline(input: AskRequest): Promise<AskResponse> {
       base,
       core && core !== base ? core : null,
       wantsFresh ? `${core || base} latest` : null,
+      recency.wantsVeryFresh ? `${core || base} today` : null,
+      recency.isFinance ? `${core || base} price` : null,
       input.mode === "verified" ? `${core || base} official` : null,
     ].filter((q): q is string => !!q && q.trim().length > 0);
 
@@ -541,18 +610,21 @@ export async function askPipeline(input: AskRequest): Promise<AskResponse> {
       }
     };
 
+    const maxResultsPerQuery = wantsFresh ? 6 : 4;
+    const searchDepth = input.mode === "verified" ? (wantsFresh ? "advanced" : "basic") : "fast";
+
     if (env.TAVILY_API_KEY) {
       try {
         const settled = await Promise.allSettled(
           queries.map((q) =>
             tavilyWebSearch({
               query: q,
-              maxResults: 4,
+              maxResults: maxResultsPerQuery,
               timeoutMs: 10_000,
               options: {
                 topic,
                 timeRange,
-                searchDepth: input.mode === "verified" ? "basic" : "fast",
+                searchDepth,
                 includeRawContent: input.mode === "verified" ? "text" : false,
               },
             }),
@@ -585,7 +657,7 @@ export async function askPipeline(input: AskRequest): Promise<AskResponse> {
           queries.slice(0, 2).map((q) =>
             braveWebSearch({
               query: q,
-              count: 4,
+              count: maxResultsPerQuery,
               timeoutMs: 10_000,
             }),
           ),
@@ -610,13 +682,40 @@ export async function askPipeline(input: AskRequest): Promise<AskResponse> {
     }
 
     sources.push(
-      ...Array.from(byNormUrl.values())
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 6)
-        .map(({ score: _score, normUrl: _normUrl, ...rest }) => rest),
+      ...(() => {
+        const ranked = Array.from(byNormUrl.values()).sort((a, b) => b.score - a.score);
+        const maxSources = wantsFresh ? 8 : 6;
+
+        const preferredMaxPerHost = wantsFresh ? 1 : 2;
+        const hostCounts = new Map<string, number>();
+
+        const picked: EvidenceSource[] = [];
+
+        for (const c of ranked) {
+          if (picked.length >= maxSources) break;
+          const host = getHostnameSafe(c.url) || c.url;
+          const count = hostCounts.get(host) ?? 0;
+          if (count >= preferredMaxPerHost) continue;
+          hostCounts.set(host, count + 1);
+          const { score: _score, normUrl: _normUrl, ...rest } = c;
+          picked.push(rest);
+        }
+
+        if (picked.length < maxSources) {
+          for (const c of ranked) {
+            if (picked.length >= maxSources) break;
+            const key = c.url;
+            if (picked.some((p) => p.url === key)) continue;
+            const { score: _score, normUrl: _normUrl, ...rest } = c;
+            picked.push(rest);
+          }
+        }
+
+        return picked;
+      })(),
     );
 
-    const maxFetch = 3;
+    const maxFetch = input.mode === "verified" ? (wantsFresh ? 5 : 4) : wantsFresh ? 4 : 3;
     const toFetch: number[] = [];
     for (let i = 0; i < Math.min(maxFetch, sources.length); i += 1) {
       if (sources[i].extractedText) continue;
@@ -643,20 +742,54 @@ export async function askPipeline(input: AskRequest): Promise<AskResponse> {
     ? `${input.question}\n\n${evidenceBlock}`
     : input.question;
 
-  const answer = await openRouterChatCompletion({
+  const mode = input.mode ?? "verified";
+  const wantsRetryForCitations = mode === "verified" && sources.length > 0;
+
+  let answer = await openRouterChatCompletion({
     apiKey: env.OPENROUTER_API_KEY,
     model,
     timeoutMs: 30_000,
     temperature: input.mode === "fast" ? 0.7 : 0.3,
     messages: [
-      { role: "system", content: buildSystemPrompt(input) },
+      { role: "system", content: buildSystemPrompt(input, { sourcesCount: sources.length }) },
       { role: "user", content: userContent },
     ],
   });
 
+  if (wantsRetryForCitations) {
+    const extracted = extractCitationNumbers(answer);
+    const sanitized = sanitizeCitationNumbers(extracted, sources.length);
+    const hasInvalid = extracted.length !== sanitized.length;
+    const hasNone = sanitized.length === 0;
+
+    if (hasNone || hasInvalid) {
+      const strictUserContent =
+        `${userContent}\n\n` +
+        `CRITICAL: You have ${sources.length} sources. Use citations like [1]..[${sources.length}] for factual claims. ` +
+        "If the sources don't contain the information, say you couldn't verify it from the sources.";
+
+      answer = await openRouterChatCompletion({
+        apiKey: env.OPENROUTER_API_KEY,
+        model,
+        timeoutMs: 30_000,
+        temperature: 0.2,
+        messages: [
+          {
+            role: "system",
+            content: buildSystemPrompt(input, {
+              strictCitations: true,
+              sourcesCount: sources.length,
+            }),
+          },
+          { role: "user", content: strictUserContent },
+        ],
+      });
+    }
+  }
+
   const latencyMs = Date.now() - start;
 
-  const usedSourceNumbers = extractCitationNumbers(answer);
+  const usedSourceNumbers = sanitizeCitationNumbers(extractCitationNumbers(answer), sources.length);
   const citations = usedSourceNumbers
     .map((n) => sources[n - 1])
     .filter((s): s is EvidenceSource => !!s)
