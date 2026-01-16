@@ -3,6 +3,37 @@ import { OPENROUTER_BASE_URL, env } from "../../config";
 import { fetchWithTimeout } from "../../lib/fetchWithTimeout";
 import { HttpError } from "../../lib/httpError";
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getRetryAfterMs(res: Response): number | null {
+  const h = res.headers.get("retry-after");
+  if (!h) return null;
+  const seconds = Number.parseInt(h, 10);
+  if (!Number.isFinite(seconds) || seconds <= 0) return null;
+  return Math.min(10_000, seconds * 1000);
+}
+
+function isTransientStatus(status: number): boolean {
+  return status === 429 || status === 502 || status === 503 || status === 504;
+}
+
+function isRetryableNetworkError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const anyErr = err as { name?: string; code?: string };
+
+  if (anyErr.name === "AbortError") return true;
+
+  return (
+    anyErr.code === "ETIMEDOUT" ||
+    anyErr.code === "ECONNRESET" ||
+    anyErr.code === "EAI_AGAIN" ||
+    anyErr.code === "ENOTFOUND" ||
+    anyErr.code === "ECONNREFUSED"
+  );
+}
+
 export type ChatMessage = {
   role: "system" | "user" | "assistant";
   content: string;
@@ -34,50 +65,79 @@ const chatCompletionResponseSchema = z
 export async function openRouterChatCompletion(
   params: ChatCompletionParams,
 ): Promise<string> {
-  const res = await fetchWithTimeout(
-    `${OPENROUTER_BASE_URL}/chat/completions`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${params.apiKey}`,
-        "Content-Type": "application/json",
-        "X-Title": "NOLIA",
-      },
-      body: JSON.stringify({
-        model: params.model,
-        messages: params.messages,
-        temperature: params.temperature,
-        max_tokens: params.maxTokens,
-      }),
+  const url = `${OPENROUTER_BASE_URL}/chat/completions`;
+  const req: RequestInit = {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${params.apiKey}`,
+      "Content-Type": "application/json",
+      "X-Title": "NOLIA",
     },
-    params.timeoutMs,
-  );
+    body: JSON.stringify({
+      model: params.model,
+      messages: params.messages,
+      temperature: params.temperature,
+      max_tokens: params.maxTokens,
+    }),
+  };
 
-  const text = await res.text();
-  if (!res.ok) {
-    if (res.status === 401 || res.status === 403) {
-      throw new HttpError(401, "LLM provider authentication failed");
+  const maxAttempts = 2;
+  let lastText = "";
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    let res: Response;
+    try {
+      res = await fetchWithTimeout(url, req, params.timeoutMs);
+    } catch (err) {
+      if (attempt < maxAttempts && isRetryableNetworkError(err)) {
+        await sleep(350);
+        continue;
+      }
+      throw err;
     }
 
-    throw new HttpError(
-      502,
-      `LLM provider error (${res.status})`,
-    );
+    const text = await res.text();
+    lastText = text;
+
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        throw new HttpError(401, "LLM provider authentication failed");
+      }
+
+      if (attempt < maxAttempts && isTransientStatus(res.status)) {
+        const retryAfterMs = getRetryAfterMs(res);
+        await sleep(retryAfterMs ?? 350);
+        continue;
+      }
+
+      throw new HttpError(502, `LLM provider error (${res.status})`);
+    }
+
+    let json: unknown;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      if (attempt < maxAttempts) {
+        await sleep(200);
+        continue;
+      }
+      throw new HttpError(502, "Invalid JSON from LLM provider");
+    }
+
+    const parsed = chatCompletionResponseSchema.safeParse(json);
+    if (!parsed.success) {
+      if (attempt < maxAttempts) {
+        await sleep(200);
+        continue;
+      }
+      throw new HttpError(502, "Unexpected response from LLM provider");
+    }
+
+    return parsed.data.choices[0].message.content;
   }
 
-  let json: unknown;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    throw new HttpError(502, "Invalid JSON from LLM provider");
-  }
-
-  const parsed = chatCompletionResponseSchema.safeParse(json);
-  if (!parsed.success) {
-    throw new HttpError(502, "Unexpected response from LLM provider");
-  }
-
-  return parsed.data.choices[0].message.content;
+  void lastText;
+  throw new HttpError(502, "LLM provider error");
 }
 
 const modelsResponseSchema = z

@@ -10,6 +10,19 @@ export function metaImagesPlugin(): Plugin {
   return {
     name: 'vite-plugin-meta-images',
     transformIndexHtml(html) {
+      const googleVerification =
+        process.env.GOOGLE_SITE_VERIFICATION ??
+        process.env.VITE_GOOGLE_SITE_VERIFICATION ??
+        null;
+
+      if (googleVerification && !/name="google-site-verification"/i.test(html)) {
+        const escaped = escapeHtmlAttribute(googleVerification);
+        html = html.replace(
+          /<\/head>/i,
+          `  <meta name="google-site-verification" content="${escaped}" />\n  </head>`
+        );
+      }
+
       const baseUrl = getDeploymentUrl();
       if (!baseUrl) {
         log('[meta-images] no Replit deployment domain found, skipping meta tag updates');
@@ -75,4 +88,13 @@ function log(...args: any[]): void {
   if (process.env.NODE_ENV === 'production') {
     console.log(...args);
   }
+}
+
+function escapeHtmlAttribute(input: string): string {
+  return input
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
 }
