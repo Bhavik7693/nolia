@@ -11,6 +11,26 @@ if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
 }
 
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("X-Frame-Options", "DENY");
+
+  if (process.env.NODE_ENV === "production") {
+    const forwardedProtoRaw = req.headers["x-forwarded-proto"];
+    const forwardedProto =
+      typeof forwardedProtoRaw === "string"
+        ? forwardedProtoRaw.split(",")[0]?.trim().toLowerCase()
+        : "";
+    const isHttps = req.secure || forwardedProto === "https";
+    if (isHttps) {
+      res.setHeader("Strict-Transport-Security", "max-age=15552000");
+    }
+  }
+
+  next();
+});
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;

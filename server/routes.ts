@@ -130,9 +130,47 @@ function stableAskCacheKey(params: {
   return createHash("sha256").update(raw).digest("hex");
 }
 
+function normalizeBaseUrlFromEnv(raw: unknown): string {
+  if (typeof raw !== "string") return "";
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+
+  try {
+    const u = new URL(trimmed);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return "";
+    u.hash = "";
+    u.search = "";
+    const out = u.toString().replace(/\/+$/, "");
+    return out;
+  } catch {
+    return "";
+  }
+}
+
+function firstForwardedHeaderValue(v: unknown): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const first = v.split(",")[0]?.trim();
+  return first || undefined;
+}
+
 function getOriginFromRequest(req: any): string {
-  const host = typeof req.get === "function" ? req.get("host") : undefined;
-  const proto = typeof req.protocol === "string" ? req.protocol : "https";
+  const fromEnv = normalizeBaseUrlFromEnv(process.env.PUBLIC_BASE_URL);
+  if (fromEnv) return fromEnv;
+
+  const forwardedProto = firstForwardedHeaderValue(req?.headers?.["x-forwarded-proto"]);
+  const forwardedHost = firstForwardedHeaderValue(req?.headers?.["x-forwarded-host"]);
+
+  const proto =
+    forwardedProto && /^(https|http)$/i.test(forwardedProto)
+      ? forwardedProto.toLowerCase()
+      : typeof req.protocol === "string" && req.protocol
+        ? req.protocol
+        : "https";
+
+  const host =
+    forwardedHost ||
+    (typeof req.get === "function" ? (req.get("host") as string | undefined) : undefined);
+
   if (!host) return "";
   return `${proto}://${host}`;
 }
