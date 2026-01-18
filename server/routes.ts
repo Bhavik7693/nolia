@@ -197,6 +197,7 @@ export async function registerRoutes(
   app.get("/robots.txt", (req, res) => {
     const origin = getOriginFromRequest(req);
     res.type("text/plain");
+    res.setHeader("Cache-Control", "public, max-age=3600");
     res.send(
       [
         "User-agent: *",
@@ -228,6 +229,7 @@ export async function registerRoutes(
       `\n</urlset>\n`;
 
     res.type("application/xml");
+    res.setHeader("Cache-Control", "public, max-age=3600");
     res.send(xml);
   });
 

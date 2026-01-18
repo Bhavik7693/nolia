@@ -31,6 +31,7 @@ export function HeaderNav(props: {
             onClick={onToggleHistory}
             className="p-2 hover:bg-muted rounded-full transition-colors active:scale-90"
             title="History"
+            aria-label="Open history"
           >
             <History className="w-4 h-4" />
           </motion.button>
@@ -40,6 +41,7 @@ export function HeaderNav(props: {
             transition={{ delay: 0.3 }}
             onClick={onToggleTheme}
             className="p-2 hover:bg-muted rounded-full transition-colors active:scale-90"
+            aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}
           >
             {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </motion.button>

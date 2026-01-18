@@ -218,6 +218,7 @@ export function AnswerView(props: {
                       onSetFeedback("up");
                       onSetShowCommentBox(true);
                     }}
+                    aria-label="Mark answer as helpful"
                     className={`p-2 rounded-lg border transition-all ${
                       feedback === "up"
                         ? "bg-primary/10 border-primary/50 text-primary"
@@ -231,6 +232,7 @@ export function AnswerView(props: {
                       onSetFeedback("down");
                       onSetShowCommentBox(true);
                     }}
+                    aria-label="Mark answer as not helpful"
                     className={`p-2 rounded-lg border transition-all ${
                       feedback === "down"
                         ? "bg-destructive/10 border-destructive/50 text-destructive"

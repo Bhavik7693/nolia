@@ -60,6 +60,7 @@ export function HomeSearchView(props: {
             <div className="flex items-center gap-2">
               <button
                 onClick={onToggleListening}
+                aria-label={isListening ? "Stop voice input" : "Start voice input"}
                 className={`p-2.5 sm:p-3 rounded-2xl border transition-all active:scale-95 ${
                   isListening
                     ? "bg-primary border-primary text-primary-foreground animate-pulse"
