@@ -32,6 +32,247 @@ type RecencyIntent = {
   isFinance: boolean;
 };
 
+function normalizeForMatching(input: string): string {
+  return (input || "").replace(/\s+/g, " ").trim();
+}
+
+function buildRelevantExcerpt(params: {
+  text: string;
+  question: string;
+  maxTotalChars: number;
+  maxChunks: number;
+}): string {
+  const text = normalizeForMatching(params.text);
+  if (!text) return "";
+
+  const qTokens = tokenizeForMatch(params.question);
+  if (qTokens.length === 0) {
+    return truncate(text, params.maxTotalChars);
+  }
+
+  const lower = text.toLowerCase();
+  const chunkSize = 520;
+  const step = 320;
+
+  const scored: Array<{ start: number; end: number; score: number }> = [];
+  for (let start = 0; start < text.length; start += step) {
+    const end = Math.min(text.length, start + chunkSize);
+    const chunk = lower.slice(start, end);
+    let score = 0;
+    for (const t of qTokens) {
+      if (chunk.includes(t)) score += 1;
+    }
+    if (score > 0) {
+      scored.push({ start, end, score });
+    }
+    if (end >= text.length) break;
+  }
+
+  if (scored.length === 0) {
+    return truncate(text, params.maxTotalChars);
+  }
+
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.start - b.start;
+  });
+
+  const picked: Array<{ start: number; end: number }> = [];
+  const minDistance = 220;
+  for (const c of scored) {
+    if (picked.length >= params.maxChunks) break;
+    if (picked.some((p) => Math.abs(p.start - c.start) < minDistance)) continue;
+    picked.push({ start: c.start, end: c.end });
+  }
+
+  const parts = picked
+    .sort((a, b) => a.start - b.start)
+    .map((p) => text.slice(p.start, p.end).trim())
+    .filter(Boolean);
+
+  const joined = parts.join("\n\n");
+  return truncate(joined, params.maxTotalChars);
+}
+
+function stripCodeFences(input: string): string {
+  return input.replace(/```[\s\S]*?```/g, " ");
+}
+
+function hasAnyCitation(text: string): boolean {
+  return /\[\d+\]/.test(text);
+}
+
+function hasMissingCitations(answer: string): boolean {
+  const withoutCode = stripCodeFences(answer);
+  const blocks = withoutCode
+    .split(/\n\s*\n/g)
+    .map((b) => b.trim())
+    .filter(Boolean);
+
+  for (const block of blocks) {
+    const lines = block
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+    const bulletLines = lines.filter((l) => /^(-|\*|\d+[.)])\s+/.test(l));
+    if (bulletLines.length > 0) {
+      for (const l of bulletLines) {
+        const meaningful = l.replace(/^(-|\*|\d+[.)])\s+/, "").trim();
+        if (meaningful.length < 20) continue;
+        if (!hasAnyCitation(l)) return true;
+      }
+      continue;
+    }
+
+    const plain = block.replace(/^#+\s+/, "").trim();
+    if (plain.length < 40) continue;
+    if (!hasAnyCitation(block)) return true;
+  }
+
+  return false;
+}
+
+const citationNumberSchema = z.preprocess(
+  (v) => {
+    if (typeof v === "number") return v;
+    if (typeof v === "string") {
+      const n = Number.parseInt(v, 10);
+      return Number.isFinite(n) ? n : v;
+    }
+    return v;
+  },
+  z.number().int().min(1),
+);
+
+const groundedFactSchema = z.object({
+  fact: z.string().trim().min(1).max(500),
+  citations: z.array(citationNumberSchema).min(1).max(3),
+});
+
+const groundedFactsSchema = z.array(groundedFactSchema).min(1).max(15);
+
+type GroundedFact = z.infer<typeof groundedFactSchema>;
+
+function parseGroundedFacts(raw: string, maxSource: number): GroundedFact[] | undefined {
+  const jsonArrayString = extractJsonArrayString(raw);
+  if (!jsonArrayString) return undefined;
+
+  let json: unknown;
+  try {
+    json = JSON.parse(jsonArrayString);
+  } catch {
+    return undefined;
+  }
+
+  const parsed = groundedFactsSchema.safeParse(json);
+  if (!parsed.success) return undefined;
+
+  const cleaned: GroundedFact[] = [];
+  for (const f of parsed.data) {
+    const cites = sanitizeCitationNumbers(f.citations, maxSource);
+    if (cites.length === 0) continue;
+    cleaned.push({ fact: f.fact, citations: cites });
+  }
+
+  return cleaned.length ? cleaned : undefined;
+}
+
+async function generateGroundedFacts(params: {
+  apiKey: string;
+  model: string;
+  input: AskRequest;
+  userContent: string;
+  sourcesCount: number;
+}): Promise<GroundedFact[] | undefined> {
+  const prompt = [
+    "Extract a list of source-backed facts that answer the user's question.",
+    "Return ONLY valid JSON as an array of objects with shape:",
+    '{"fact": string, "citations": number[]}',
+    "Rules:",
+    "- Each fact must be supported by the provided SOURCES.",
+    `- Use only citation numbers in range [1]..[${params.sourcesCount}].`,
+    "- Keep facts short and specific (no long paragraphs).",
+    "- Include key numbers/dates ONLY if supported by sources.",
+    "- If sources do not support an important detail, omit it.",
+    "- Do NOT include markdown, headings, or extra keys.",
+    "- Output JSON only.",
+    "",
+    `User language: ${params.input.language ?? "auto"}`,
+    `User question: ${params.input.question}`,
+  ].join("\n");
+
+  const raw = await openRouterChatCompletion({
+    apiKey: params.apiKey,
+    model: params.model,
+    timeoutMs: 25_000,
+    temperature: 0.1,
+    maxTokens: 520,
+    messages: [
+      {
+        role: "system",
+        content: buildSystemPrompt(params.input, {
+          strictCitations: true,
+          sourcesCount: params.sourcesCount,
+        }),
+      },
+      { role: "user", content: `${prompt}\n\n${params.userContent}` },
+    ],
+  });
+
+  return parseGroundedFacts(raw, params.sourcesCount);
+}
+
+function buildFactsBlock(facts: GroundedFact[]): string {
+  return facts
+    .map((f, idx) => {
+      const cite = f.citations.map((n) => `[${n}]`).join(" ");
+      return `${idx + 1}. ${f.fact} ${cite}`.trim();
+    })
+    .join("\n");
+}
+
+async function composeAnswerFromFacts(params: {
+  apiKey: string;
+  model: string;
+  input: AskRequest;
+  facts: GroundedFact[];
+  sourcesCount: number;
+}): Promise<string> {
+  const factsBlock = buildFactsBlock(params.facts);
+  const prompt = [
+    "Write the final answer using ONLY the FACTS below.",
+    "Rules:",
+    "- Do not introduce any new facts, numbers, or dates that are not present in FACTS.",
+    "- Use inline citations like [1]..[N] for factual claims.",
+    "- Each paragraph or bullet should include at least one citation if it contains factual claims.",
+    "- If the facts do not fully answer the question, say what cannot be verified from sources.",
+    "",
+    `Question: ${params.input.question}`,
+    "",
+    "FACTS:",
+    factsBlock,
+  ].join("\n");
+
+  return await openRouterChatCompletion({
+    apiKey: params.apiKey,
+    model: params.model,
+    timeoutMs: 30_000,
+    temperature: 0.2,
+    maxTokens: 900,
+    messages: [
+      {
+        role: "system",
+        content: buildSystemPrompt(params.input, {
+          strictCitations: true,
+          sourcesCount: params.sourcesCount,
+        }),
+      },
+      { role: "user", content: prompt },
+    ],
+  });
+}
+
 function detectRecencyIntent(question: string): RecencyIntent {
   const q = question.toLowerCase();
 
@@ -636,11 +877,20 @@ export async function askPipeline(input: AskRequest): Promise<AskResponse> {
           const { results, rawByUrl } = s.value;
           for (const r of results) {
             if (!r.url) continue;
+            const raw = rawByUrl.get(r.url);
             upsertCandidate({
               title: r.title,
               url: r.url,
               snippet: r.snippet,
-              extractedText: rawByUrl.get(r.url),
+              extractedText:
+                typeof raw === "string" && raw.trim()
+                  ? buildRelevantExcerpt({
+                      text: raw,
+                      question: input.question,
+                      maxTotalChars: 1200,
+                      maxChunks: 3,
+                    })
+                  : undefined,
             });
           }
         }
@@ -730,7 +980,12 @@ export async function askPipeline(input: AskRequest): Promise<AskResponse> {
             timeoutMs: 10_000,
             maxBytes: 1_000_000,
           });
-          sources[idx].extractedText = pageText;
+          sources[idx].extractedText = buildRelevantExcerpt({
+            text: pageText,
+            question: input.question,
+            maxTotalChars: 1200,
+            maxChunks: 3,
+          });
         }),
       );
       void settled;
@@ -740,21 +995,61 @@ export async function askPipeline(input: AskRequest): Promise<AskResponse> {
   const evidenceBlock = buildEvidenceBlock(sources);
   const userContent = evidenceBlock
     ? `${input.question}\n\n${evidenceBlock}`
-    : input.question;
+    : `${input.question}\n\nNOTE: No web sources were available to cite. Avoid exact numbers/dates and be explicit about uncertainty.`;
 
   const mode = input.mode ?? "verified";
   const wantsRetryForCitations = mode === "verified" && sources.length > 0;
 
-  let answer = await openRouterChatCompletion({
-    apiKey: env.OPENROUTER_API_KEY,
-    model,
-    timeoutMs: 30_000,
-    temperature: input.mode === "fast" ? 0.7 : 0.3,
-    messages: [
-      { role: "system", content: buildSystemPrompt(input, { sourcesCount: sources.length }) },
-      { role: "user", content: userContent },
-    ],
-  });
+  let answer: string;
+
+  if (mode === "verified" && sources.length > 0) {
+    let facts: GroundedFact[] | undefined;
+    try {
+      facts = await generateGroundedFacts({
+        apiKey: env.OPENROUTER_API_KEY,
+        model,
+        input,
+        userContent,
+        sourcesCount: sources.length,
+      });
+    } catch (err) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Grounded fact extraction failed", err);
+      }
+    }
+
+    if (facts && facts.length) {
+      answer = await composeAnswerFromFacts({
+        apiKey: env.OPENROUTER_API_KEY,
+        model,
+        input,
+        facts,
+        sourcesCount: sources.length,
+      });
+    } else {
+      answer = await openRouterChatCompletion({
+        apiKey: env.OPENROUTER_API_KEY,
+        model,
+        timeoutMs: 30_000,
+        temperature: input.mode === "fast" ? 0.7 : 0.3,
+        messages: [
+          { role: "system", content: buildSystemPrompt(input, { sourcesCount: sources.length }) },
+          { role: "user", content: userContent },
+        ],
+      });
+    }
+  } else {
+    answer = await openRouterChatCompletion({
+      apiKey: env.OPENROUTER_API_KEY,
+      model,
+      timeoutMs: 30_000,
+      temperature: input.mode === "fast" ? 0.7 : 0.3,
+      messages: [
+        { role: "system", content: buildSystemPrompt(input, { sourcesCount: sources.length }) },
+        { role: "user", content: userContent },
+      ],
+    });
+  }
 
   if (wantsRetryForCitations) {
     const extracted = extractCitationNumbers(answer);
@@ -762,10 +1057,13 @@ export async function askPipeline(input: AskRequest): Promise<AskResponse> {
     const hasInvalid = extracted.length !== sanitized.length;
     const hasNone = sanitized.length === 0;
 
-    if (hasNone || hasInvalid) {
+    const hasMissing = hasMissingCitations(answer);
+
+    if (hasNone || hasInvalid || hasMissing) {
       const strictUserContent =
         `${userContent}\n\n` +
         `CRITICAL: You have ${sources.length} sources. Use citations like [1]..[${sources.length}] for factual claims. ` +
+        "Each paragraph or bullet must include at least one citation [n] if it contains factual claims. " +
         "If the sources don't contain the information, say you couldn't verify it from the sources.";
 
       answer = await openRouterChatCompletion({
